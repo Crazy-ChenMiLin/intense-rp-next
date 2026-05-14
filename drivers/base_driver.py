@@ -48,6 +48,7 @@ class BaseDriver(ABC):
         # Abort handling (provider-specific use; common surface)
         self.current_abort_event: asyncio.Event | None = None
         self.abort_requested = False
+        self._abort_generation_task: asyncio.Task | None = None
         self._send_control_signature: str | None = None
 
         # Optional provider UI language detection (providers may opt in)
@@ -831,13 +832,7 @@ class BaseDriver(ABC):
         except Exception:
             raise
 
-    def request_abort(self) -> None:
-        """
-        Best-effort, non-blocking request to abort the current generation.
-
-        Providers may additionally click a "Stop" button or cancel streams; this method
-        is intentionally lightweight for use from disconnect/cancellation paths.
-        """
+    def _mark_abort_requested(self) -> None:
         self.abort_requested = True
         abort_event = getattr(self, "current_abort_event", None)
         if abort_event:
@@ -845,6 +840,48 @@ class BaseDriver(ABC):
                 abort_event.set()
             except Exception:
                 pass
+
+    def request_abort(self) -> None:
+        """
+        Best-effort, non-blocking request to abort the current generation.
+
+        Providers may additionally click a "Stop" button or cancel streams; this method
+        is intentionally lightweight for use from disconnect/cancellation paths.
+        """
+        self._mark_abort_requested()
+
+        # If a provider did not override request_abort(), but it does expose the
+        # older async abort_generation() hook, bridge it into the common surface.
+        if type(self).request_abort is not BaseDriver.request_abort:
+            return
+
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return
+
+        existing = getattr(self, "_abort_generation_task", None)
+        if existing is not None and not existing.done():
+            return
+
+        try:
+            self._abort_generation_task = loop.create_task(self._run_abort_generation_hook())
+        except Exception as exc:
+            Logger.debug(f"{self.provider_label}: abort_generation scheduling failed: {exc}")
+
+    async def _run_abort_generation_hook(self) -> None:
+        abort_generation = getattr(self, "abort_generation", None)
+        if not callable(abort_generation):
+            return
+
+        try:
+            result = abort_generation()
+            if hasattr(result, "__await__"):
+                await result
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            Logger.debug(f"{self.provider_label}: abort_generation failed: {exc}")
 
     async def _iterate_response_queue(
         self,
@@ -1235,7 +1272,7 @@ class BaseDriver(ABC):
         """
         Logger.info(f"Closing {self.provider_label} Driver...")
         # Tell any in-flight generation to unwind before we tear down the browser/session
-        self.request_abort()
+        self._mark_abort_requested()
         self.monitoring_active = False
         monitor_task = getattr(self, "_monitor_task", None)
         try:
@@ -1243,6 +1280,15 @@ class BaseDriver(ABC):
         except asyncio.CancelledError:
             pass
         self._monitor_task = None
+
+        try:
+            await self._cancel_task(
+                getattr(self, "_abort_generation_task", None),
+                label="stopping abort generation task",
+            )
+        except asyncio.CancelledError:
+            pass
+        self._abort_generation_task = None
 
         try:
             await self.cleanup_background_tasks()

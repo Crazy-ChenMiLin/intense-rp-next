@@ -48,6 +48,7 @@ nav:
       - Advanced:
           - Overview: advanced.md
           - Provider Support: advanced/provider-support.md
+          - Secondary Development Plan: advanced/secondary-development-plan.md
           - API Behavior: advanced/api-behavior.md
           - IP Whitelist: advanced/ip-whitelist.md
           - GLM Quirks: advanced/glm-quirks.md

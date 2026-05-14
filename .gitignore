@@ -67,3 +67,7 @@ test_*.py
 PerplexityFindings.md
 Perplexity*.txt
 spacesupport.md
+
+# Keep the real unit test suite tracked even though scratch test files are ignored above.
+!tests/
+!tests/*.py

@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, Iterable, List, Mapping
 
+from drivers.descriptors import get_provider_model_prefix, get_provider_owned_by
 from drivers.providers import DriverProvider
 
 MODE_AUTO = "auto"
@@ -86,24 +87,6 @@ LEGACY_MODEL_IDS_BY_PROVIDER: Dict[DriverProvider, tuple[str, ...]] = {
     for provider, model_map in LEGACY_MODE_BY_PROVIDER.items()
 }
 
-LEGACY_MODEL_PREFIX_BY_PROVIDER: Dict[DriverProvider, str] = {
-    DriverProvider.DEEPSEEK: "deepseek",
-    DriverProvider.GLM_CHAT: "glm",
-    DriverProvider.MOONSHOT: "moonshot",
-    DriverProvider.QWEN_LM: "qwen",
-    DriverProvider.PERPLEXITY: "perplexity",
-    DriverProvider.AI_STUDIO: "aistudio",
-}
-
-OWNED_BY_PROVIDER: Dict[DriverProvider, str] = {
-    DriverProvider.DEEPSEEK: "deepseek",
-    DriverProvider.GLM_CHAT: "glm",
-    DriverProvider.MOONSHOT: "moonshot",
-    DriverProvider.QWEN_LM: "qwen",
-    DriverProvider.PERPLEXITY: "perplexity",
-    DriverProvider.AI_STUDIO: "aistudio",
-}
-
 AISTUDIO_MODEL_OVERRIDE_SUFFIX_RE = re.compile(r"-(minimal|low|medium|high|r[0-4])$")
 
 
@@ -113,11 +96,11 @@ def get_legacy_model_ids(provider: DriverProvider) -> list[str]:
 
 
 def get_legacy_model_prefix(provider: DriverProvider) -> str:
-    return LEGACY_MODEL_PREFIX_BY_PROVIDER.get(provider, "deepseek")
+    return get_provider_model_prefix(provider, default="deepseek")
 
 
 def get_owned_by_for_provider(provider: DriverProvider) -> str:
-    return OWNED_BY_PROVIDER.get(provider, "deepseek")
+    return get_provider_owned_by(provider, default="deepseek")
 
 
 def get_real_model_api_prefix(provider: DriverProvider) -> str:

@@ -40,6 +40,7 @@ from ui.niche.update_installed_dialog import UpdateInstalledDialog, UpdateInstal
 from drivers.parallel_manager import ParallelDriversManager
 from utils.logger import Logger, LogLevel, LEVEL_NAME_MAP
 from utils.news_state import NEWS_DOCS_URL, has_unviewed_news, mark_latest_news_viewed
+from utils.network_security import build_network_security_warnings
 from utils.providers_in_parallel import (
     get_current_provider,
     get_parallel_selected_providers,
@@ -3237,6 +3238,18 @@ class MainWindow(QMainWindow):
                 self._sync_hotswap_button()
                 self._update_tray_menu_state()
                 return
+
+            security_warnings = build_network_security_warnings(self.config_manager)
+            for warning in security_warnings:
+                Logger.warning(f"{warning.title}: {warning.message}")
+            if security_warnings:
+                self._notify_user(
+                    "Network Security Warning",
+                    "\n\n".join(
+                        f"{warning.title}\n{warning.message}" for warning in security_warnings
+                    ),
+                    level="warning",
+                )
 
             required_providers = (
                 get_parallel_selected_providers(self.config_manager)

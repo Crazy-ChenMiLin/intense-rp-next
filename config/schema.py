@@ -1938,9 +1938,10 @@ SCHEMA = [
                 type=SettingType.PASSWORD,
                 default="",
                 tooltip=(
-                    "Optional password for the Remote Control interface. Leave blank to disable "
-                    "password auth and rely on network restrictions only."
+                    "Password for the Remote Control interface. Leaving this blank disables "
+                    "password auth and should only be used with trusted local-only access."
                 ),
+                front_tooltip="Use a password before exposing Remote Control beyond this machine.",
                 depends="experimental.enable_remote_control",
                 docs_path=DOCS_REMOTE_CONTROL,
                 docs_anchor="passwords-and-tokens",
@@ -2164,6 +2165,7 @@ SCHEMA = [
                 type=SettingType.BOOLEAN,
                 default=False,
                 tooltip="Make the API server accessible from other devices on the local network.",
+                front_tooltip="Use API keys or an IP whitelist when exposing the server to your network.",
                 docs_path=DOCS_NETWORK,
                 docs_anchor="lan-availability",
             ),
