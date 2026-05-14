@@ -200,7 +200,7 @@ class _MarshmallowAddRow(QWidget):
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(8)
 
-        self._add_button = QPushButton("Add New Loadout")
+        self._add_button = QPushButton("新增预设")
         self._add_button.setCursor(Qt.PointingHandCursor)
         self._add_button.setStyleSheet(
             f"""
@@ -239,7 +239,7 @@ class _MarshmallowAddRow(QWidget):
         editor_layout.setSpacing(8)
 
         self._input = QLineEdit()
-        self._input.setPlaceholderText("New loadout name")
+        self._input.setPlaceholderText("新预设名称")
         self._input.setStyleSheet(
             f"""
             QLineEdit {{
@@ -499,8 +499,8 @@ class _MarshmallowPopup(QFrame):
         owner = self.parentWidget().window() if self.parentWidget() is not None else self
         reply = QMessageBox.question(
             owner,
-            "Delete Loadout",
-            "Are you sure you want to delete this loadout?\n\n"
+            "删除预设",
+            "确定要删除这个预设吗？\n\n"
             f"{label}",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,

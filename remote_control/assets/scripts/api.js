@@ -112,7 +112,7 @@
       remote.setToken("");
       remote.setStatus(
         elements.loginStatus,
-        error && error.message ? error.message : "Login failed.",
+        error && error.message ? error.message : "登录失败。",
         true
       );
     } finally {
@@ -154,7 +154,7 @@
     } catch (error) {
       remote.setStatus(
         statusElement,
-        error && error.message ? error.message : "Action failed.",
+        error && error.message ? error.message : "操作失败。",
         true
       );
       return false;
@@ -165,14 +165,14 @@
     elements.reconnectStatus.classList.add("hidden");
     remote.setStatus(
       elements.reconnectStatus,
-      "Failed to reconnect. Start the server up, check the connection, and try again.",
+      "重连失败。请先启动服务，检查连接后再试。",
       true
     );
     try {
       if (state.needsAuth) {
         const sessionState = await validateSession();
         if (!sessionState.reachable) {
-          throw sessionState.error || new Error("Unable to reach the server.");
+          throw sessionState.error || new Error("无法连接到服务。");
         }
         if (!sessionState.authenticated) {
           state.pendingView = "home";

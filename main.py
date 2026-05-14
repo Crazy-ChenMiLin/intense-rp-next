@@ -33,6 +33,7 @@ from ui.widgets.badge_icon_button import BadgeIconButton
 from ui.core.animation_settings import sync_animations_disabled_from_config
 from ui.core.brand import BrandColors
 from ui.core.icons import IconUtils, IconType
+from ui.i18n import zh
 from ui.niche.hotswap_dialog import HotswapDialog, PROVIDER_ICON_MAP
 from ui.niche.loadout_switch_dialog import LoadoutSwitchDialog
 from ui.niche.update_available_dialog import UpdateAvailableDialog, UpdateAvailableInfo
@@ -419,7 +420,7 @@ class MainWindow(QMainWindow):
         self._build_title_area()
 
         # 1.5. Readiness Status
-        self.status_label = QLabel("● Ready")
+        self.status_label = QLabel(f"● {zh('Ready')}")
         self.status_label.setStyleSheet(f"""
             font-size: {BrandColors.FONT_SIZE_LARGE};
             font-weight: bold;
@@ -441,7 +442,8 @@ class MainWindow(QMainWindow):
         button_layout = QHBoxLayout()
         button_layout.setSpacing(10)
         
-        self.start_button = SplitButton("Start")
+        self.start_button = SplitButton(zh("Start"))
+        self.start_button.setProperty("serviceAction", "start")
         self.start_button.setStyleSheet(f"""
             QPushButton {{
                 background-color: {BrandColors.ACCENT};
@@ -464,7 +466,7 @@ class MainWindow(QMainWindow):
         self.start_button.clicked.connect(self.on_start_clicked)
         button_layout.addWidget(self.start_button, 1)
 
-        self.settings_button = QPushButton("Settings")
+        self.settings_button = QPushButton(zh("Settings"))
         self.settings_button.setStyleSheet(f"""
             QPushButton {{
                 background-color: {BrandColors.SIDEBAR_BG};
@@ -512,7 +514,7 @@ class MainWindow(QMainWindow):
         self.hotswap_button.setVisible(False)
         help_row.addWidget(self.hotswap_button)
 
-        self.help_button = QPushButton("Tools")
+        self.help_button = QPushButton(zh("Tools"))
         self.help_button.setStyleSheet(f"""
             QPushButton {{
                 background-color: {BrandColors.SIDEBAR_BG};
@@ -547,7 +549,7 @@ class MainWindow(QMainWindow):
         """)
         IconUtils.apply_icon(self.news_button, IconType.BELL, BrandColors.TEXT_PRIMARY, size=18)
         self.news_button.setIconSize(QSize(18, 18))
-        self.news_button.setToolTip("Open News")
+        self.news_button.setToolTip(zh("Open News"))
         self.news_button.setCursor(Qt.PointingHandCursor)
         self.news_button.clicked.connect(self._open_news_page)
         help_row.addWidget(self.news_button)
@@ -678,6 +680,17 @@ class MainWindow(QMainWindow):
         self._tray_action_restart = None
         self._tray_action_exit = None
 
+    def _set_start_button_mode(self, mode: str) -> None:
+        normalized = "stop" if str(mode or "").strip().lower() == "stop" else "start"
+        self.start_button.setProperty("serviceAction", normalized)
+        self.start_button.setText(zh("Stop" if normalized == "stop" else "Start"))
+
+    def _is_start_button_start_mode(self) -> bool:
+        return str(self.start_button.property("serviceAction") or "start") == "start"
+
+    def _is_start_button_stop_mode(self) -> bool:
+        return str(self.start_button.property("serviceAction") or "start") == "stop"
+
     def _setup_tray_icon(self) -> None:
         try:
             if not QSystemTrayIcon.isSystemTrayAvailable():
@@ -693,26 +706,26 @@ class MainWindow(QMainWindow):
             menu = QMenu(self)
             menu.aboutToShow.connect(self._update_tray_menu_state)
 
-            hide_action = menu.addAction("Hide")
+            hide_action = menu.addAction(zh("Hide"))
             hide_action.triggered.connect(self._hide_to_tray)
 
-            show_action = menu.addAction("Show")
+            show_action = menu.addAction(zh("Show"))
             show_action.triggered.connect(self._show_from_tray)
 
             menu.addSeparator()
 
-            start_action = menu.addAction("Start")
+            start_action = menu.addAction(zh("Start"))
             start_action.triggered.connect(self._tray_start_services)
 
-            stop_action = menu.addAction("Stop")
+            stop_action = menu.addAction(zh("Stop"))
             stop_action.triggered.connect(self._tray_stop_services)
 
-            restart_action = menu.addAction("Restart")
+            restart_action = menu.addAction(zh("Restart"))
             restart_action.triggered.connect(self._tray_restart_services)
 
             menu.addSeparator()
 
-            exit_action = menu.addAction("Exit")
+            exit_action = menu.addAction(zh("Exit"))
             exit_action.triggered.connect(self._tray_exit_requested)
 
             tray_icon.setContextMenu(menu)
@@ -1020,7 +1033,7 @@ class MainWindow(QMainWindow):
 
         Logger.error(f"Loadouts validation failed: {message}")
         if show_dialog:
-            QMessageBox.warning(self, "Loadouts", message)
+            QMessageBox.warning(self, zh("Loadouts"), zh(message))
         return False
 
     def _get_remote_control_state(self) -> dict[str, object]:
@@ -1253,8 +1266,8 @@ class MainWindow(QMainWindow):
             from desktop_notifier import DEFAULT_SOUND
 
             notification_id = await notifier.send(
-                title=str(title or ""),
-                message=str(message or ""),
+                title=zh(title or ""),
+                message=zh(message or ""),
                 urgency=self._desktop_notification_urgency(level),
                 sound=DEFAULT_SOUND,
                 thread=str(title or "") or None,
@@ -1332,8 +1345,8 @@ class MainWindow(QMainWindow):
             Logger.extra_debug(f"Windows FlashWindowEx failed: {exc}")
 
     def _notify_user(self, title: str, message: str, level: str = "info") -> None:
-        title = str(title or "Notification")
-        message = str(message or "")
+        title = zh(title or "Notification")
+        message = zh(message or "")
         level_norm = str(level or "info").strip().lower()
 
         is_focused = bool(self.isVisible() and self.isActiveWindow())
@@ -1370,10 +1383,10 @@ class MainWindow(QMainWindow):
         level: str = "info",
         force_notify: bool = False,
     ) -> str | None:
-        title = str(title or "Input Required")
-        message = str(message or "")
-        label = str(label or "Input")
-        placeholder = str(placeholder or "")
+        title = zh(title or "Input Required")
+        message = zh(message or "")
+        label = zh(label or "Input")
+        placeholder = zh(placeholder or "")
         level_norm = str(level or "info").strip().lower()
         max_length = max(0, int(max_length or 0))
         min_length = max(0, int(min_length or 0))
@@ -1429,8 +1442,8 @@ class MainWindow(QMainWindow):
 
         buttons = QHBoxLayout()
         buttons.addStretch(1)
-        cancel_button = QPushButton("Cancel", dialog)
-        submit_button = QPushButton("Continue", dialog)
+        cancel_button = QPushButton(zh("Cancel"), dialog)
+        submit_button = QPushButton(zh("Continue"), dialog)
         submit_button.setDefault(True)
         buttons.addWidget(cancel_button)
         buttons.addWidget(submit_button)
@@ -1688,12 +1701,12 @@ class MainWindow(QMainWindow):
             max_len = 80
             if level == "error":
                 if is_multiline or ("Call log:" in raw_text) or ("Traceback" in raw_text) or (len(one_liner) > max_len):
-                    return "Unexpected Error"
-                return one_liner
+                    return zh("Unexpected Error")
+                return zh(one_liner)
 
             if len(one_liner) > max_len:
-                return one_liner[: max_len - 3].rstrip() + "..."
-            return one_liner
+                return zh(one_liner[: max_len - 3].rstrip() + "...")
+            return zh(one_liner)
 
         status_type = str(status_type or "info").strip().lower()
         color_map = {
@@ -2118,13 +2131,13 @@ class MainWindow(QMainWindow):
         if loading:
             self.settings_button.setEnabled(False)
             self.settings_button.setCursor(Qt.ArrowCursor)
-            self.settings_button.setText("Loading")
+            self.settings_button.setText(zh("Loading"))
             self.settings_button.setIcon(QIcon())
             self._settings_button_loading_timeout.start()
             return
 
         self._settings_button_loading_timeout.stop()
-        self.settings_button.setText("Settings")
+        self.settings_button.setText(zh("Settings"))
         self.settings_button.setEnabled(True)
         self.settings_button.setCursor(Qt.PointingHandCursor)
         self.settings_button.setIconSize(QSize(16, 16))
@@ -2153,9 +2166,8 @@ class MainWindow(QMainWindow):
             Logger.error(f"Failed to open Settings: {exc}")
             QMessageBox.warning(
                 self,
-                "Settings",
-                "Failed to open the Settings window.\n\n"
-                f"{exc}",
+                zh("Settings"),
+                f"打开设置窗口失败。\n\n{exc}",
             )
         finally:
             self._set_settings_button_loading(False)
@@ -2223,9 +2235,9 @@ class MainWindow(QMainWindow):
             self.console_window.apply_settings()
 
         # Refresh affected UI components
-        if "chevron_dropdown" in affected and self.start_button.text() == "Stop":
+        if "chevron_dropdown" in affected and self._is_start_button_stop_mode():
             self._refresh_chevron_menu()
-        elif self._loadouts_feature_enabled() and self.start_button.text() == "Stop":
+        elif self._loadouts_feature_enabled() and self._is_start_button_stop_mode():
             self._refresh_chevron_menu()
 
         if "hotswap_button" in affected:
@@ -2257,10 +2269,10 @@ class MainWindow(QMainWindow):
         menu = self.start_button.menu
         menu.clear()
 
-        restart_action = menu.addAction("Restart")
+        restart_action = menu.addAction(zh("Restart"))
         restart_action.triggered.connect(self._on_restart_services)
 
-        account_action = menu.addAction("Switch Account")
+        account_action = menu.addAction(zh("Switch Account"))
         account_action.triggered.connect(self._on_account_switch)
 
         # Disable if fewer than 2 accounts for the current provider
@@ -2268,12 +2280,12 @@ class MainWindow(QMainWindow):
             account_action.setEnabled(False)
 
         if self._loadouts_feature_enabled():
-            loadout_action = menu.addAction("Switch Loadout")
+            loadout_action = menu.addAction(zh("Switch Loadout"))
             loadout_action.triggered.connect(self._on_switch_loadout)
 
         hotswap_mode = self.config_manager.get_setting("application_settings", "hotswap_experience")
         if (hotswap_mode or "Stop Menu") == "Stop Menu":
-            hotswap_action = menu.addAction("Hotswap")
+            hotswap_action = menu.addAction(zh("Hotswap"))
             hotswap_action.triggered.connect(self._on_hotswap)
 
     def _on_restart_services(self):
@@ -2316,7 +2328,7 @@ class MainWindow(QMainWindow):
             port = int(port_setting) if port_setting else 7777
         except (TypeError, ValueError):
             port = 7777
-        return f"Running (Port {port})"
+        return f"运行中（端口 {port}）"
 
     async def _restart_runtime_providers_impl(
         self,
@@ -2481,8 +2493,8 @@ class MainWindow(QMainWindow):
             if not provider_loadouts:
                 QMessageBox.information(
                     self,
-                    "Loadouts",
-                    "No loadouts are available for the active parallel providers yet.",
+                    zh("Loadouts"),
+                    "当前并行运行的提供商还没有可用预设。",
                 )
                 return
 
@@ -2520,7 +2532,7 @@ class MainWindow(QMainWindow):
                 for runtime_provider, selected_name in changes.items():
                     self.config_manager.set_preferred_loadout_name(runtime_provider, selected_name)
             except Exception as exc:
-                QMessageBox.warning(self, "Loadouts", f"Failed to switch loadout.\n\n{exc}")
+                QMessageBox.warning(self, zh("Loadouts"), f"切换预设失败。\n\n{exc}")
                 return
 
             if len(changes) == 1:
@@ -2545,8 +2557,8 @@ class MainWindow(QMainWindow):
         if not available:
             QMessageBox.information(
                 self,
-                "Loadouts",
-                f"No loadouts are available for {provider.value} yet.",
+                zh("Loadouts"),
+                f"{provider.value} 还没有可用预设。",
             )
             return
 
@@ -2566,7 +2578,7 @@ class MainWindow(QMainWindow):
         try:
             self.config_manager.set_preferred_loadout_name(provider, selected_name)
         except Exception as exc:
-            QMessageBox.warning(self, "Loadouts", f"Failed to switch loadout.\n\n{exc}")
+            QMessageBox.warning(self, zh("Loadouts"), f"切换预设失败。\n\n{exc}")
             return
 
         Logger.info(f"Loadouts: selected '{selected_name}' for {provider.value}.")
@@ -2578,7 +2590,7 @@ class MainWindow(QMainWindow):
                 )
             )
         else:
-            self._update_status(f"Selected loadout: {selected_name}", "info")
+            self._update_status(f"已选择预设：{selected_name}", "info")
 
     async def _account_switch_impl(self):
         self.start_button.setEnabled(False)
@@ -2619,7 +2631,7 @@ class MainWindow(QMainWindow):
                     port = int(port_setting) if port_setting else 7777
                 except (TypeError, ValueError):
                     port = 7777
-                self._update_status(f"Running (Port {port})", "running")
+                self._update_status(f"运行中（端口 {port}）", "running")
                 Logger.success("Account switch completed.")
             else:
                 Logger.warning("Account switch failed (no alternative identity available).")
@@ -2644,9 +2656,9 @@ class MainWindow(QMainWindow):
         self.news_button.setVisible(show)
         self.news_button.set_badge_visible(show and self._news_unread)
         if show and self._news_unread:
-            self.news_button.setToolTip("Open News (new items available)")
+            self.news_button.setToolTip("打开新闻（有新内容）")
         else:
-            self.news_button.setToolTip("Open News")
+            self.news_button.setToolTip(zh("Open News"))
 
     def _open_news_page(self) -> None:
         QDesktopServices.openUrl(QUrl(NEWS_DOCS_URL))
@@ -2661,7 +2673,7 @@ class MainWindow(QMainWindow):
     def _sync_hotswap_button(self):
         """Show or hide the discrete hotswap button based on setting + running state."""
         mode = self.config_manager.get_setting("application_settings", "hotswap_experience")
-        running = self.start_button.text() == "Stop"
+        running = self._is_start_button_stop_mode()
         show = (mode == "Persistent Discrete") or ((mode == "Discrete") and running)
 
         self.hotswap_button.setVisible(show)
@@ -2701,7 +2713,7 @@ class MainWindow(QMainWindow):
         Logger.info(f"Hotswap: {current} -> {target_provider}")
         self.config_manager.set_setting("providers_credentials", "provider", target_provider)
         self.config_manager.save_settings()
-        running = self.start_button.text() == "Stop"
+        running = self._is_start_button_stop_mode()
         if running:
             await self._restart_services_impl()
         else:
@@ -3027,7 +3039,7 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def on_start_clicked(self):
-        if self.start_button.text() == "Start":
+        if self._is_start_button_start_mode():
             self.start_button.setEnabled(False)
             self._update_status("Starting...", "info")
             self._update_tray_menu_state()
@@ -3168,7 +3180,7 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(0, focus)
 
     def _warn_port_in_use(self, port: int) -> None:
-        title = "Port In Use"
+        title = zh("Port In Use")
         text = f"Port {port} is already in use."
         details = "Free the port (close the other application) or change it in Settings -> API Server."
 
@@ -3179,10 +3191,10 @@ class MainWindow(QMainWindow):
         dialog = QMessageBox(self)
         dialog.setIcon(QMessageBox.Warning)
         dialog.setWindowTitle(title)
-        dialog.setText(text)
-        dialog.setInformativeText(details)
+        dialog.setText(zh(text))
+        dialog.setInformativeText(zh(details))
 
-        open_settings = dialog.addButton("Open Settings", QMessageBox.ActionRole)
+        open_settings = dialog.addButton(zh("Open Settings"), QMessageBox.ActionRole)
         dialog.addButton(QMessageBox.Ok)
 
         def on_clicked(button) -> None:
@@ -3231,7 +3243,7 @@ class MainWindow(QMainWindow):
                         level="error",
                     )
 
-                self.start_button.setText("Start")
+                self._set_start_button_mode("start")
                 self.start_button.apply_icon(IconType.START, BrandColors.TEXT_PRIMARY)
                 self.start_button.setEnabled(True)
                 self.start_button.set_chevron_visible(False)
@@ -3257,7 +3269,7 @@ class MainWindow(QMainWindow):
                 else [get_current_provider(self.config_manager)]
             )
             if not self._validate_runtime_loadouts(providers=required_providers):
-                self.start_button.setText("Start")
+                self._set_start_button_mode("start")
                 self.start_button.apply_icon(IconType.START, BrandColors.TEXT_PRIMARY)
                 self.start_button.setEnabled(True)
                 self.start_button.set_chevron_visible(False)
@@ -3324,7 +3336,7 @@ class MainWindow(QMainWindow):
             # We run server.serve() as a task because it blocks
             self.server_task = asyncio.create_task(self.server.serve())
             
-            self._update_status(f"Running (Port {port})", "running")
+            self._update_status(f"运行中（端口 {port}）", "running")
 
             if self.config_manager.get_setting("network_settings", "show_ip"):
                 addrs = [f"http://127.0.0.1:{port}"]
@@ -3343,7 +3355,7 @@ class MainWindow(QMainWindow):
                     for addr in set(addrs):
                         Logger.success(f"Remote control available at {addr}/remote")
 
-            self.start_button.setText("Stop")
+            self._set_start_button_mode("stop")
             self.start_button.apply_icon(IconType.STOP, BrandColors.TEXT_PRIMARY)
             self.start_button.setEnabled(True)
             self.start_button.set_chevron_visible(True)
@@ -3358,7 +3370,7 @@ class MainWindow(QMainWindow):
                 await self.stop_services(update_ui=False)
             except Exception as cleanup_error:
                 Logger.error(f"Error cleaning up after failed start: {cleanup_error}")
-            self.start_button.setText("Start")
+            self._set_start_button_mode("start")
             self.start_button.apply_icon(IconType.START, BrandColors.TEXT_PRIMARY)
             self.start_button.setEnabled(True)
             self.start_button.set_chevron_visible(False)
@@ -3433,13 +3445,13 @@ class MainWindow(QMainWindow):
 
             dialog = QMessageBox(self)
             dialog.setIcon(QMessageBox.Warning)
-            dialog.setWindowTitle(f"{provider_label} UI Language")
-            dialog.setText(f"{provider_label} UI language is not {required_label}.")
+            dialog.setWindowTitle(f"{provider_label} 界面语言")
+            dialog.setText(f"{provider_label} 的界面语言不是 {required_label}。")
             dialog.setInformativeText(
-                f"Detected <html lang>: {detected}\n\n"
-                f"IntenseRP currently requires the {provider_label} UI language to be {required_label}. "
-                "Some automation relies on expected UI text, and an unsupported interface language can make it break.\n\n"
-                f"Please change the language to {required_label} in the {provider_label} browser window, then click Retry."
+                f"检测到 <html lang>: {detected}\n\n"
+                f"IntenseRP 目前需要 {provider_label} 的界面语言为 {required_label}。"
+                "部分自动化依赖固定界面文字，使用不支持的语言可能导致流程失败。\n\n"
+                f"请在 {provider_label} 浏览器窗口里把语言改成 {required_label}，然后点击 Retry。"
             )
             dialog.setStandardButtons(QMessageBox.Retry | QMessageBox.Cancel)
             dialog.setDefaultButton(QMessageBox.Retry)
@@ -3534,7 +3546,7 @@ class MainWindow(QMainWindow):
 
             if update_ui:
                 self._update_status("Stopped", "ready")
-                self.start_button.setText("Start")
+                self._set_start_button_mode("start")
                 self.start_button.apply_icon(IconType.START, BrandColors.TEXT_PRIMARY)
                 self.start_button.setEnabled(True)
                 self.start_button.set_chevron_visible(False)
@@ -3622,7 +3634,7 @@ class MainWindow(QMainWindow):
                     self.driver = None
             
             # Reset UI
-            self.start_button.setText("Start")
+            self._set_start_button_mode("start")
             self.start_button.apply_icon(IconType.START, BrandColors.TEXT_PRIMARY)
             self.start_button.setEnabled(True)
             self.start_button.set_chevron_visible(False)
@@ -3669,7 +3681,15 @@ class MainWindow(QMainWindow):
                 return
         
         status_text = self.status_label.text()
-        if any(state in status_text for state in ["Stopped", "Ready", "Browser Closed/Crashed"]):
+        terminal_states = [
+            "Stopped",
+            "Ready",
+            "Browser Closed/Crashed",
+            zh("Stopped"),
+            zh("Ready"),
+            zh("Browser Closed/Crashed"),
+        ]
+        if any(state in status_text for state in terminal_states):
             # Close console window if open
             if self.console_window:
                 self.console_window.force_close()

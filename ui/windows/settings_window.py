@@ -26,6 +26,7 @@ from config.location import infer_preset_from_config_dir, migrate_config_dir, re
 from config.schema import SCHEMA, SettingType, SETTINGS_SECTIONS, SETTINGS_CARDS, PROVIDER_BEHAVIOR_GROUPS
 from drivers.providers import DriverProvider
 from ui.core.brand import BrandColors
+from ui.i18n import zh
 from ui.widgets.components import Tumbler, StyledLineEdit, StyledTextEdit, StyledComboBox, Divider, Description, HintCard, StyledButton, MultiColumnRow, SettingRow, ToggleRow, InputPairsWidget, InputListWidget, DirectoryEntry
 from ui.widgets.marshmallow_dropdown import MarshmallowDropdown, MarshmallowMultiSelectDropdown, MarshmallowOption
 from ui.widgets.redirect_card import RedirectCard
@@ -632,7 +633,7 @@ class _SettingInfoBubble(QWidget):
         footer_layout.setContentsMargins(0, 4, 0, 0)
         footer_layout.setSpacing(6)
 
-        self._footer_text = QLabel("Click for More Info")
+        self._footer_text = QLabel(zh("Click for More Info"))
         self._footer_text.setStyleSheet(
             f"""
             color: {BrandColors.TEXT_SECONDARY};
@@ -686,8 +687,8 @@ class _SettingInfoBubble(QWidget):
     ) -> None:
         self._current_anchor = anchor_widget
         self._docs_url = str(docs_url or "").strip()
-        self._title.setText(str(title or ""))
-        self._body.setText(render_tooltip_text(body))
+        self._title.setText(zh(title))
+        self._body.setText(render_tooltip_text(zh(body)))
         self._footer_text.setVisible(bool(self._docs_url))
         self._footer_icon.setVisible(bool(self._docs_url))
 
@@ -851,11 +852,35 @@ class SettingsWindow(QMainWindow):
         for provider, behavior_key in BEHAVIOR_CATEGORY_BY_PROVIDER.items()
     }
 
+    @staticmethod
+    def _display(value) -> str:
+        return zh(value)
+
+    @staticmethod
+    def _display_field_label(field) -> str:
+        return zh(getattr(field, "label", ""))
+
+    @staticmethod
+    def _display_field_tooltip(field) -> str:
+        return zh(getattr(field, "tooltip", ""))
+
+    @staticmethod
+    def _display_field_default(field) -> str:
+        return zh(getattr(field, "default", ""))
+
+    @staticmethod
+    def _display_card_title(card_def) -> str:
+        return zh(getattr(card_def, "title", ""))
+
+    @staticmethod
+    def _display_card_description(card_def) -> str:
+        return zh(getattr(card_def, "description", ""))
+
 
     def __init__(self, config_manager: ConfigManager, parent=None):
         super().__init__(parent)
         self.config_manager = config_manager
-        self.setWindowTitle("Settings")
+        self.setWindowTitle(zh("Settings"))
         self.resize(900, 700)
         self.setMinimumSize(self.MIN_WINDOW_WIDTH, self.MIN_WINDOW_HEIGHT)
         self.setStyleSheet(f"background-color: {BrandColors.WINDOW_BG}; color: {BrandColors.TEXT_PRIMARY};")
@@ -955,7 +980,7 @@ class SettingsWindow(QMainWindow):
             icon_label.setPixmap(icon.pixmap(icon_size, icon_size))
             layout.addWidget(icon_label, 0, Qt.AlignVCenter)
 
-        title_label = QLabel(title)
+        title_label = QLabel(zh(title))
         title_label.setStyleSheet(f"""
             font-size: {BrandColors.FONT_SIZE_TITLE};
             font-weight: 700;
@@ -1006,7 +1031,7 @@ class SettingsWindow(QMainWindow):
         return build_docs_url(docs_path, docs_anchor)
 
     def _get_field_front_tooltip(self, field) -> str:
-        return str(getattr(field, "front_tooltip", "") or "").strip()
+        return zh(str(getattr(field, "front_tooltip", "") or "").strip())
 
     def _get_field_inline_description(self, field, *, fallback_to_tooltip: bool = False) -> str | None:
         front_tooltip = self._get_field_front_tooltip(field)
@@ -1015,7 +1040,7 @@ class SettingsWindow(QMainWindow):
         if fallback_to_tooltip:
             tooltip = str(getattr(field, "tooltip", "") or "").strip()
             if tooltip:
-                return tooltip
+                return zh(tooltip)
         return None
 
     def _tag_docs_widget(self, widget: QWidget | None, docs_url: str | None) -> None:
@@ -1237,14 +1262,14 @@ class SettingsWindow(QMainWindow):
             if (category_key == "experimental") and (field.key == "enable_loadouts"):
                 widget.stateChanged.connect(self._on_loadouts_toggle_changed)
         elif field.type == SettingType.DIRECTORY:
-            dialog_title = f"Select {field.label}" if field.label else "Select Directory"
+            dialog_title = f"选择{zh(field.label)}" if field.label else "选择文件夹"
             widget = DirectoryEntry(dialog_title=dialog_title)
             if field.key == "config_storage_custom_path":
-                widget.setPlaceholderText("Custom config directory...")
+                widget.setPlaceholderText("自定义配置目录...")
             elif field.key == "condump_directory":
-                widget.setPlaceholderText("Ask (leave blank)...")
+                widget.setPlaceholderText("询问（留空）...")
             elif field.key == "log_dir":
-                widget.setPlaceholderText("Default (logs)...")
+                widget.setPlaceholderText("默认（logs）...")
             widget.textChanged.connect(self._on_setting_changed)
         elif field.type in [SettingType.STRING, SettingType.PASSWORD, SettingType.INTEGER]:
             widget = StyledLineEdit()
@@ -1255,9 +1280,9 @@ class SettingsWindow(QMainWindow):
                 widget.setValidator(QIntValidator())
 
             if field.key == "config_storage_custom_path":
-                widget.setPlaceholderText("Custom config directory...")
+                widget.setPlaceholderText("自定义配置目录...")
             elif field.key == "condump_directory":
-                widget.setPlaceholderText("Ask (leave blank)...")
+                widget.setPlaceholderText("询问（留空）...")
             widget.textChanged.connect(self._on_setting_changed)
         elif field.type == SettingType.TEXTAREA:
             widget = StyledTextEdit()
@@ -1300,7 +1325,7 @@ class SettingsWindow(QMainWindow):
             elif field.key == "config_storage_location":
                 widget.currentTextChanged.connect(self._on_config_storage_location_changed)
             elif (category_key == "system_settings") and (field.key == "persistent_profile_to_delete"):
-                widget.addItem("(Click to load saved profiles...)", "")
+                widget.addItem("（点击加载已保存配置档案...）", "")
                 widget.popupAboutToShow.connect(
                     lambda: self._maybe_refresh_persistent_profile_options(
                         "provider_login",
@@ -1339,24 +1364,24 @@ class SettingsWindow(QMainWindow):
                 widget = MarshmallowMultiSelectDropdown(
                     placeholder=self._format_reasoning_effort_provider_summary(0),
                     button_icon_file="sidebar/brain.svg",
-                    popup_title="Select providers for API reasoning effort",
+                    popup_title="选择允许 API reasoning_effort 的提供商",
                     summary_formatter=self._format_reasoning_effort_provider_summary,
                 )
             else:
                 widget = MarshmallowMultiSelectDropdown(
-                    placeholder=f"Select {str(field.label or 'items').lower()}",
+                    placeholder=f"选择{zh(field.label or '项目')}",
                 )
             widget.set_options(options)
             widget.selectionChanged.connect(self._on_setting_changed)
 
         elif field.type == SettingType.REDIRECT:
-            btn_text = str(field.default) if field.default else "Open"
+            btn_text = zh(str(field.default)) if field.default else zh("Open")
             display_description = self._get_field_inline_description(field, fallback_to_tooltip=True) or ""
             widget = RedirectCard(
-                field.label,
+                zh(field.label),
                 display_description,
                 btn_text,
-                info_body=field.tooltip or display_description,
+                info_body=zh(field.tooltip) or display_description,
                 docs_url=docs_url,
                 docs_handler=self._open_docs_from_sender,
             )
@@ -1364,9 +1389,9 @@ class SettingsWindow(QMainWindow):
                 widget.clicked.connect(self._open_credential_manager)
                 
         elif field.type == SettingType.BUTTON:
-            widget = StyledButton(field.label)
+            widget = StyledButton(zh(field.label))
             # use the default value as button text if provided, else label
-            btn_text = str(field.default) if field.default else field.label
+            btn_text = zh(str(field.default)) if field.default else zh(field.label)
             widget.setText(btn_text)
             
             if field.action == "reset_injection":
@@ -1467,9 +1492,9 @@ class SettingsWindow(QMainWindow):
             extra_labels = " ".join(sub.label for sub in field.sub_fields if sub.label)
 
         self.search_targets.append({
-            "label_lower": (field.label or "").lower(),
+            "label_lower": " ".join({str(field.label or "").lower(), zh(field.label or "").lower()}).strip(),
             "key_lower": (field.key or "").lower(),
-            "category_lower": (category.name or "").lower(),
+            "category_lower": " ".join({str(category.name or "").lower(), zh(category.name or "").lower()}).strip(),
             "category_key_lower": (category.key or "").lower(),
             "category_key": category.key,
             "extra_lower": extra_labels.lower(),
@@ -1564,20 +1589,20 @@ class SettingsWindow(QMainWindow):
             docs_url = self._get_field_docs_url(field)
 
             if field.type == SettingType.DIVIDER:
-                widget = Divider(field.label)
+                widget = Divider(zh(field.label))
                 card_layout.addWidget(widget)
                 continue
 
             if field.type == SettingType.DESCRIPTION:
-                widget = Description(field.default)
+                widget = Description(zh(field.default))
                 self.field_widgets[f"{category.key}.{field.key}"] = widget
                 card_layout.addWidget(widget)
                 continue
 
             if field.type == SettingType.HINT:
                 widget = HintCard(
-                    field.label,
-                    field.default,
+                    zh(field.label),
+                    zh(field.default),
                     variant=getattr(field, "hint_variant", None) or "info",
                 )
                 self.field_widgets[f"{category.key}.{field.key}"] = widget
@@ -1606,9 +1631,9 @@ class SettingsWindow(QMainWindow):
 
                 self.field_widgets[f"{category.key}.{field.key}"] = widget
                 row = SettingRow(
-                    field.label,
+                    zh(field.label),
                     widget,
-                    field.tooltip,
+                    zh(field.tooltip),
                     description=self._get_field_inline_description(field),
                     docs_url=docs_url,
                     docs_handler=self._open_docs_from_sender,
@@ -1622,18 +1647,18 @@ class SettingsWindow(QMainWindow):
             if widget:
                 if field.type == SettingType.BOOLEAN:
                     row = ToggleRow(
-                        field.label,
+                        zh(field.label),
                         widget,
-                        field.tooltip,
+                        zh(field.tooltip),
                         description=self._get_field_inline_description(field, fallback_to_tooltip=True),
                         docs_url=docs_url,
                         docs_handler=self._open_docs_from_sender,
                     )
                 else:
                     row = SettingRow(
-                        field.label,
+                        zh(field.label),
                         widget,
-                        field.tooltip,
+                        zh(field.tooltip),
                         description=self._get_field_inline_description(field),
                         docs_url=docs_url,
                         docs_handler=self._open_docs_from_sender,
@@ -1900,7 +1925,7 @@ class SettingsWindow(QMainWindow):
         search_layout.setContentsMargins(0, 8, 0, 8)
         search_layout.setSpacing(6)
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Search settings...")
+        self.search_input.setPlaceholderText("搜索设置...")
         self.search_input.setStyleSheet(
             f"""
             QLineEdit {{
@@ -1987,7 +2012,7 @@ class SettingsWindow(QMainWindow):
         button_layout.setSpacing(12)
         button_layout.addStretch(1)
 
-        self.cancel_btn = QPushButton("Cancel")
+        self.cancel_btn = QPushButton(zh("Cancel"))
         self.cancel_btn.setCursor(Qt.PointingHandCursor)
         self.cancel_btn.setStyleSheet(
             f"""
@@ -2008,7 +2033,7 @@ class SettingsWindow(QMainWindow):
         self.cancel_btn.clicked.connect(self.close)
         button_layout.addWidget(self.cancel_btn)
 
-        self.save_btn = QPushButton("Save")
+        self.save_btn = QPushButton(zh("Save"))
         self.save_btn.setCursor(Qt.PointingHandCursor)
         self.save_btn.setStyleSheet(
             f"""
@@ -2084,7 +2109,7 @@ class SettingsWindow(QMainWindow):
         for section in self._section_defs:
             sidebar = _SidebarSectionWidget(
                 section.key,
-                section.label,
+                zh(section.label),
                 section.icon,
                 self._get_sidebar_icon,
                 parent=self.sidebar_content,
@@ -2128,12 +2153,12 @@ class SettingsWindow(QMainWindow):
                 widget = self._card_widgets.get(card_key)
                 if widget is not None and widget.isHidden():
                     continue
-                cards.append((card_key, self._card_defs_by_key[card_key].title))
+                cards.append((card_key, zh(self._card_defs_by_key[card_key].title)))
             return cards
 
         if section_key != "provider_behavior":
             return [
-                (card_key, self._card_defs_by_key[card_key].title)
+                (card_key, zh(self._card_defs_by_key[card_key].title))
                 for card_key in section.card_keys
                 if card_key in self._card_defs_by_key
             ]
@@ -2142,9 +2167,9 @@ class SettingsWindow(QMainWindow):
         cards: list[tuple[str, str]] = []
         selector_def = self._card_defs_by_key.get(self._provider_behavior_selector_card_key)
         if selector_def is not None:
-            cards.append((self._provider_behavior_selector_card_key, selector_def.title))
+            cards.append((self._provider_behavior_selector_card_key, zh(selector_def.title)))
         for card_key in self._provider_behavior_group_card_keys.get(behavior_key, []):
-            title = str(self._card_widgets.get(card_key).property("sidebarTitle") or "").strip()
+            title = zh(str(self._card_widgets.get(card_key).property("sidebarTitle") or "").strip())
             if title:
                 cards.append((card_key, title))
         return cards
@@ -2168,7 +2193,7 @@ class SettingsWindow(QMainWindow):
 
     @staticmethod
     def _format_reasoning_effort_provider_summary(count: int) -> str:
-        return f"Select providers ({max(0, int(count or 0))} enabled)"
+        return f"选择提供商（已启用 {max(0, int(count or 0))} 个）"
 
     def _clone_loadout(self, loadout: LoadoutDefinition) -> LoadoutDefinition:
         return LoadoutDefinition(
@@ -2379,14 +2404,14 @@ class SettingsWindow(QMainWindow):
 
         layout.addWidget(self._build_reusable_provider_switch())
 
-        dropdown = MarshmallowDropdown(placeholder="No loadouts yet")
+        dropdown = MarshmallowDropdown(placeholder=zh("No loadouts yet"))
         dropdown.currentKeyChanged.connect(self._on_loadout_selected_from_dropdown)
         dropdown.addRequested.connect(self._on_loadout_add_requested)
         dropdown.deleteRequested.connect(self._on_loadout_delete_requested)
-        dropdown.setProperty("settingInfoTitle", "Current Loadout")
+        dropdown.setProperty("settingInfoTitle", zh("Current Loadout"))
         dropdown.setProperty(
             "settingInfoBody",
-            "Pick which loadout you are editing for the selected provider. This list only shows loadouts for that provider.",
+            "选择当前正在编辑的预设。这里只显示所选提供商的预设。",
         )
         dropdown.setProperty(
             "docsUrl",
@@ -2400,16 +2425,16 @@ class SettingsWindow(QMainWindow):
 
         dropdown_label = QLabel(
             f"<span style='font-size: {BrandColors.FONT_SIZE_REGULAR}; "
-            f"font-weight: 500; color: {BrandColors.TEXT_SECONDARY};'>Current Loadout</span>",
+            f"font-weight: 500; color: {BrandColors.TEXT_SECONDARY};'>{zh('Current Loadout')}</span>",
             dropdown_row,
         )
         dropdown_label.setTextFormat(Qt.RichText)
         dropdown_label.setStyleSheet("background-color: transparent;")
         dropdown_label.setAttribute(Qt.WA_Hover, True)
-        dropdown_label.setProperty("settingInfoTitle", "Current Loadout")
+        dropdown_label.setProperty("settingInfoTitle", zh("Current Loadout"))
         dropdown_label.setProperty(
             "settingInfoBody",
-            "Pick which loadout you are editing for the selected provider. This list only shows loadouts for that provider.",
+            "选择当前正在编辑的预设。这里只显示所选提供商的预设。",
         )
         dropdown_label.setProperty(
             "docsUrl",
@@ -2659,7 +2684,7 @@ class SettingsWindow(QMainWindow):
         layout.setContentsMargins(BrandColors.CARD_PADDING + 4, 18, BrandColors.CARD_PADDING + 4, BrandColors.CARD_PADDING)
         layout.setSpacing(6)
 
-        title = QLabel(card_def.title)
+        title = QLabel(self._display_card_title(card_def))
         title.setStyleSheet(
             f"""
             color: {BrandColors.TEXT_PRIMARY};
@@ -2682,7 +2707,7 @@ class SettingsWindow(QMainWindow):
         content_layout.setSpacing(6)
 
         if getattr(card_def, "description", None):
-            desc = QLabel(render_tooltip_text(card_def.description))
+            desc = QLabel(render_tooltip_text(self._display_card_description(card_def)))
             desc.setWordWrap(True)
             desc.setTextFormat(Qt.RichText)
             desc.setStyleSheet(
@@ -2722,7 +2747,7 @@ class SettingsWindow(QMainWindow):
         layout.setContentsMargins(BrandColors.CARD_PADDING + 4, 18, BrandColors.CARD_PADDING + 4, BrandColors.CARD_PADDING)
         layout.setSpacing(10)
 
-        title = QLabel(card_def.title)
+        title = QLabel(self._display_card_title(card_def))
         title.setStyleSheet(
             f"""
             color: {BrandColors.TEXT_PRIMARY};
@@ -2782,7 +2807,7 @@ class SettingsWindow(QMainWindow):
             icon_label.setPixmap(pixmap)
         header_layout.addWidget(icon_label, 0, Qt.AlignVCenter)
 
-        title = QLabel(card_def.title)
+        title = QLabel(self._display_card_title(card_def))
         title.setStyleSheet(
             f"""
             color: {BrandColors.TEXT_PRIMARY};
@@ -2818,7 +2843,7 @@ class SettingsWindow(QMainWindow):
             card_key = f"provider_behavior::{normalized_key}::{index}"
             self._dynamic_card_titles[card_key] = str(group.get("title") or "Provider")
             card_widget = self._build_behavior_group_card(group, normalized_key, "provider_behavior", card_key)
-            card_widget.setProperty("sidebarTitle", str(group.get("title") or "Provider"))
+            card_widget.setProperty("sidebarTitle", zh(str(group.get("title") or "Provider")))
             card_widget.setVisible(False)
             section_layout.insertWidget(insert_index + len(provider_cards), card_widget)
             self._card_widgets[card_key] = card_widget
@@ -2907,7 +2932,7 @@ class SettingsWindow(QMainWindow):
             icon_label.setPixmap(pixmap)
         header_layout.addWidget(icon_label, 0, Qt.AlignVCenter)
 
-        title = QLabel(str(group.get("title") or "Group"))
+        title = QLabel(zh(str(group.get("title") or "Group")))
         title.setStyleSheet(
             f"""
             color: {BrandColors.TEXT_PRIMARY};
@@ -2947,22 +2972,22 @@ class SettingsWindow(QMainWindow):
         full_key = f"{category_key}.{field.key}"
 
         if field.type == SettingType.DIVIDER:
-            return Divider(field.label)
+            return Divider(self._display_field_label(field))
 
         if field.type == SettingType.DESCRIPTION:
-            widget = Description(field.default)
+            widget = Description(self._display_field_default(field))
             self.field_widgets[full_key] = widget
             return widget
 
         if field.type == SettingType.HINT:
             widget = HintCard(
-                field.label,
-                field.default,
+                self._display_field_label(field),
+                self._display_field_default(field),
                 variant=getattr(field, "hint_variant", None) or "info",
             )
             self.field_widgets[full_key] = widget
-            widget.setProperty("settingInfoTitle", field.label)
-            widget.setProperty("settingInfoBody", str(field.default or ""))
+            widget.setProperty("settingInfoTitle", self._display_field_label(field))
+            widget.setProperty("settingInfoBody", self._display_field_default(field))
             if docs_url:
                 widget.setProperty("docsUrl", docs_url)
             self._field_locations[full_key] = {
@@ -3003,9 +3028,9 @@ class SettingsWindow(QMainWindow):
                 }
             widget = MultiColumnRow(sub_widgets, field.ratios)
             row = SettingRow(
-                field.label,
+                self._display_field_label(field),
                 widget,
-                field.tooltip,
+                self._display_field_tooltip(field),
                 description=self._get_field_inline_description(field),
                 docs_url=docs_url,
                 docs_handler=self._open_docs_from_sender,
@@ -3030,18 +3055,18 @@ class SettingsWindow(QMainWindow):
 
         if field.type == SettingType.BOOLEAN:
             row = ToggleRow(
-                field.label,
+                self._display_field_label(field),
                 widget,
-                field.tooltip,
+                self._display_field_tooltip(field),
                 description=self._get_field_inline_description(field, fallback_to_tooltip=True),
                 docs_url=docs_url,
                 docs_handler=self._open_docs_from_sender,
             )
         else:
             row = SettingRow(
-                field.label,
+                self._display_field_label(field),
                 widget,
-                field.tooltip,
+                self._display_field_tooltip(field),
                 description=self._get_field_inline_description(field),
                 docs_url=docs_url,
                 docs_handler=self._open_docs_from_sender,
@@ -3082,7 +3107,7 @@ class SettingsWindow(QMainWindow):
 
         section = self._section_defs_by_key.get(section_key)
         card = self._card_defs_by_key.get(card_key)
-        card_title = str(card.title if card else self._dynamic_card_titles.get(card_key, "")).strip()
+        card_title = zh(str(card.title if card else self._dynamic_card_titles.get(card_key, "")).strip())
         provider_label = ""
         if provider_key:
             for provider, behavior_key in self.BEHAVIOR_CATEGORY_BY_PROVIDER.items():
@@ -3091,15 +3116,28 @@ class SettingsWindow(QMainWindow):
                     break
         extra_labels = ""
         if field.type == SettingType.ROW and field.sub_fields:
-            extra_labels = " ".join(sub.label for sub in field.sub_fields if sub.label)
+            extra_labels = " ".join(zh(sub.label) for sub in field.sub_fields if sub.label)
+        label_terms = " ".join(
+            term
+            for term in (str(field.label or "").lower(), zh(field.label or "").lower())
+            if term
+        )
+        section_terms = " ".join(
+            term
+            for term in (
+                str(section.label if section else "").lower(),
+                zh(section.label if section else "").lower(),
+            )
+            if term
+        )
         self.search_targets.append(
             {
                 "section_key": section_key,
                 "card_key": card_key,
                 "provider_key": provider_key,
-                "label_lower": str(field.label or "").lower(),
+                "label_lower": label_terms,
                 "key_lower": str(field.key or "").lower(),
-                "section_lower": str(section.label if section else "").lower(),
+                "section_lower": section_terms,
                 "card_lower": card_title.lower(),
                 "provider_lower": provider_label.lower(),
                 "extra_lower": extra_labels.lower(),
@@ -4125,12 +4163,12 @@ class SettingsWindow(QMainWindow):
     def _sync_application_settings_info(self):
         version_widget = self.field_widgets.get("application_settings.current_version_info")
         if isinstance(version_widget, QLabel):
-            version_widget.setText(f"Current version: {read_local_version()}")
+            version_widget.setText(zh(f"Current version: {read_local_version()}"))
 
     def _set_update_status(self, text: str):
         status_widget = self.field_widgets.get("application_settings.update_status_info")
         if isinstance(status_widget, QLabel):
-            status_widget.setText(text)
+            status_widget.setText(zh(text))
 
     def _check_for_updates(self):
         if getattr(self, "_update_check_in_progress", False):
@@ -4145,7 +4183,7 @@ class SettingsWindow(QMainWindow):
 
         if isinstance(btn, QPushButton):
             btn.setEnabled(False)
-            btn.setText("Checking...")
+            btn.setText(zh("Checking..."))
 
         def worker():
             result = check_for_updates()
@@ -4167,9 +4205,8 @@ class SettingsWindow(QMainWindow):
             self._set_update_status("Status: Failed to check for updates.")
             QMessageBox.warning(
                 self,
-                "Check For Updates",
-                "Failed to check for updates.\n\n"
-                f"{result.error}",
+                zh("Check For Updates"),
+                f"检查更新失败。\n\n{result.error}",
             )
             return
 
@@ -4192,10 +4229,10 @@ class SettingsWindow(QMainWindow):
         self._set_update_status(f"Status: Up to date ({result.local_version}).")
         QMessageBox.information(
             self,
-            "No Updates Found",
-            "You're up to date.\n\n"
-            f"Current: {result.local_version}\n"
-            f"Latest: {result.remote_version}",
+            zh("No Updates Found"),
+            "当前已经是最新版本。\n\n"
+            f"当前：{result.local_version}\n"
+            f"最新：{result.remote_version}",
         )
 
     def _reset_formatting(self):
@@ -4347,7 +4384,7 @@ class SettingsWindow(QMainWindow):
             select_widget.clear()
 
             if not entries:
-                select_widget.addItem("(No saved profiles found)", "")
+                select_widget.addItem("（没有找到已保存配置档案）", "")
                 select_widget.setEnabled(False)
                 if isinstance(delete_btn, QPushButton):
                     delete_btn.setEnabled(False)
@@ -4386,7 +4423,7 @@ class SettingsWindow(QMainWindow):
     def _delete_selected_persistent_profile(self):
         selected = self._get_selected_persistent_profile()
         if not selected:
-            QMessageBox.information(self, "Delete Profile", "No saved browser profile is selected.")
+            QMessageBox.information(self, zh("Delete Profile"), zh("No saved browser profile is selected."))
             return
 
         _token, label, profile_dir = selected
@@ -4397,23 +4434,23 @@ class SettingsWindow(QMainWindow):
         except Exception:
             QMessageBox.warning(
                 self,
-                "Delete Profile",
-                "Refusing to delete profile: resolved path is outside the config directory.",
+                zh("Delete Profile"),
+                "拒绝删除配置档案：解析后的路径不在配置目录内。",
             )
             return
 
         if not profile_dir.exists():
-            QMessageBox.information(self, "Delete Profile", "That profile folder no longer exists.")
+            QMessageBox.information(self, zh("Delete Profile"), zh("That profile folder no longer exists."))
             self._refresh_persistent_profile_options()
             return
 
         reply = QMessageBox.question(
             self,
-            "Delete Profile",
-            "This will permanently delete the selected saved browser profile:\n\n"
+            zh("Delete Profile"),
+            "这将永久删除选中的浏览器配置档案：\n\n"
             f"{label}\n\n"
-            "This removes cookies/local storage and will log you out.\n\n"
-            "Continue?",
+            "这会移除 Cookie/本地存储，并让你退出登录。\n\n"
+            "继续吗？",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
@@ -4424,10 +4461,10 @@ class SettingsWindow(QMainWindow):
         try:
             shutil.rmtree(profile_dir)
             Logger.success(f"Deleted persistent profile: {label}")
-            QMessageBox.information(self, "Delete Profile", "Profile deleted successfully.")
+            QMessageBox.information(self, zh("Delete Profile"), zh("Profile deleted successfully."))
         except Exception as e:
             Logger.error(f"Error deleting persistent profile: {e}")
-            QMessageBox.warning(self, "Delete Profile", f"Failed to delete profile:\n\n{e}")
+            QMessageBox.warning(self, zh("Delete Profile"), f"删除配置档案失败：\n\n{e}")
         finally:
             self._refresh_persistent_profile_options()
 
@@ -4440,22 +4477,22 @@ class SettingsWindow(QMainWindow):
         except Exception:
             QMessageBox.warning(
                 self,
-                "Clear All Profiles",
-                "Refusing to clear profiles: resolved path is outside the config directory.",
+                zh("Clear All Profiles"),
+                "拒绝清除配置档案：解析后的路径不在配置目录内。",
             )
             return
 
         if not profiles_root.exists():
-            QMessageBox.information(self, "Clear All Profiles", "No saved browser profiles were found.")
+            QMessageBox.information(self, zh("Clear All Profiles"), zh("No saved browser profiles were found."))
             self._refresh_persistent_profile_options()
             return
 
         reply = QMessageBox.question(
             self,
-            "Clear All Profiles",
-            "This will delete ALL saved browser profiles used for Persistent Sessions.\n\n"
-            "This removes cookies/local storage and will log you out of all providers and saved accounts.\n\n"
-            "Continue?",
+            zh("Clear All Profiles"),
+            "这将删除持久会话使用的全部浏览器配置档案。\n\n"
+            "这会移除 Cookie/本地存储，并让所有提供商和已保存账号退出登录。\n\n"
+            "继续吗？",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
@@ -4466,10 +4503,10 @@ class SettingsWindow(QMainWindow):
         try:
             shutil.rmtree(profiles_root)
             Logger.success("Cleared all persistent profiles.")
-            QMessageBox.information(self, "Clear All Profiles", "All profiles cleared successfully.")
+            QMessageBox.information(self, zh("Clear All Profiles"), zh("All profiles cleared successfully."))
         except Exception as e:
             Logger.error(f"Error clearing all persistent profiles: {e}")
-            QMessageBox.warning(self, "Clear All Profiles", f"Failed to clear profiles:\n\n{e}")
+            QMessageBox.warning(self, zh("Clear All Profiles"), f"清除配置档案失败：\n\n{e}")
         finally:
             self._refresh_persistent_profile_options()
 
@@ -4509,7 +4546,7 @@ class SettingsWindow(QMainWindow):
         except Exception as e:
             if isinstance(storage_custom_widget, (StyledLineEdit, DirectoryEntry)):
                 storage_custom_widget.set_error(True)
-            validation_errors.append(f"Config Storage Location: {e}")
+            validation_errors.append(f"{zh('Config Storage Location')}: {e}")
         else:
             if isinstance(storage_custom_widget, (StyledLineEdit, DirectoryEntry)):
                 storage_custom_widget.set_error(False)
@@ -4570,7 +4607,7 @@ class SettingsWindow(QMainWindow):
                         if field.required and not value:
                             if isinstance(widget, (StyledLineEdit, DirectoryEntry)):
                                 widget.set_error(True)
-                            validation_errors.append(f"{field.label}: This field is required.")
+                            validation_errors.append(f"{zh(field.label)}: {zh('This field is required.')}")
                         
                         # Run validator if exists
                         elif field.validator:
@@ -4583,7 +4620,7 @@ class SettingsWindow(QMainWindow):
                             except ValueError as e:
                                 if isinstance(widget, (StyledLineEdit, DirectoryEntry)):
                                     widget.set_error(True)
-                                validation_errors.append(f"{field.label}: {str(e)}")
+                                validation_errors.append(f"{zh(field.label)}: {zh(str(e))}")
                     else:
                         # If disabled, ensure no error state
                         if isinstance(widget, (StyledLineEdit, DirectoryEntry)):
@@ -4594,7 +4631,7 @@ class SettingsWindow(QMainWindow):
         
         if validation_errors:
             error_msg = "\n".join(validation_errors)
-            QMessageBox.warning(self, "Validation Error", f"Please fix the following errors:\n\n{error_msg}")
+            QMessageBox.warning(self, zh("Validation Error"), f"{zh('Please fix the following errors:')}\n\n{error_msg}")
             return
 
         self.config_manager.set_loadouts(self._flatten_loadout_editor_draft())
@@ -4603,13 +4640,12 @@ class SettingsWindow(QMainWindow):
         if target_config_dir and target_config_dir != active_config_dir:
             reply = QMessageBox.question(
                 self,
-                "Move Config Storage",
-                "You're about to change where configuration data is stored.\n\n"
-                f"From:\n{active_config_dir}\n\n"
-                f"To:\n{target_config_dir}\n\n"
-                "This will save all settings, replace the destination directory contents, "
-                "and restart the application.\n\n"
-                "Continue?",
+                zh("Move Config Storage"),
+                "你将更改配置数据的存储位置。\n\n"
+                f"从：\n{active_config_dir}\n\n"
+                f"到：\n{target_config_dir}\n\n"
+                "这会保存所有设置、替换目标目录内容，并重启应用。\n\n"
+                "继续吗？",
                 QMessageBox.Yes | QMessageBox.No,
                 QMessageBox.No,
             )
@@ -4657,8 +4693,8 @@ class SettingsWindow(QMainWindow):
             write_pointer_file(target_config_dir)
             QMessageBox.information(
                 self,
-                "Config Storage",
-                "Configuration migrated successfully.\n\nRestarting now...",
+                zh("Config Storage"),
+                "配置迁移成功。\n\n即将重启...",
             )
             self.restart_requested.emit()
             self.close()
@@ -4674,9 +4710,9 @@ class SettingsWindow(QMainWindow):
             self._sync_config_storage_from_active_dir()
             QMessageBox.warning(
                 self,
-                "Config Migration Failed",
-                "Failed to migrate configuration to the new location.\n\n"
-                f"Error:\n{e}",
+                zh("Config Migration Failed"),
+                "迁移配置到新位置失败。\n\n"
+                f"错误：\n{e}",
             )
             return
 
@@ -4685,16 +4721,16 @@ class SettingsWindow(QMainWindow):
         if dialog and dialog.isVisible():
             QMessageBox.information(
                 self,
-                "Credential Manager",
-                "Close the Credential Manager window before closing Settings.",
+                zh("Credential Manager"),
+                zh("Close the Credential Manager window before closing Settings."),
             )
             event.ignore()
             return
 
         if self.unsaved_changes:
             reply = QMessageBox.question(
-                self, "Unsaved Changes",
-                "You have unsaved changes. Are you sure you want to discard them?",
+                self, zh("Unsaved Changes"),
+                zh("You have unsaved changes. Are you sure you want to discard them?"),
                 QMessageBox.Yes | QMessageBox.No, QMessageBox.No
             )
             

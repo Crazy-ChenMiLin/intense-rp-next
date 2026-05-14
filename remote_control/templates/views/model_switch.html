@@ -1,9 +1,9 @@
 {% from "macros.html" import web_button %}
 <section class="view hotswap-view" data-view="model-switch">
   <div class="hotswap-view__panel">
-    <h1 class="hotswap-view__title">Select Model</h1>
+    <h1 class="hotswap-view__title">选择模型</h1>
     <div id="model-provider-block" class="loadout-provider-block hidden">
-      <span class="loadout-provider-block__label">Provider</span>
+      <span class="loadout-provider-block__label">提供商</span>
       <div id="model-provider-dropdown" class="custom-select">
         <button id="model-provider-button" class="custom-select__button" type="button" aria-haspopup="listbox" aria-expanded="false">
           <span class="custom-select__value">
@@ -21,8 +21,8 @@
     </div>
     <div id="model-switch-list" class="model-switch-list"></div>
     <div id="model-switch-footer" class="loadout-switch-footer is-single">
-      {{ web_button("model-switch-back-button", "Back", variant="secondary") }}
-      {{ web_button("model-switch-confirm-button", "Confirm", variant="accent", icon_url=asset_urls.icons.check, icon_alt="Confirm") }}
+      {{ web_button("model-switch-back-button", "返回", variant="secondary") }}
+      {{ web_button("model-switch-confirm-button", "确认", variant="accent", icon_url=asset_urls.icons.check, icon_alt="确认") }}
     </div>
     <p id="model-switch-status" class="status-text"></p>
   </div>

@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
 
 from ui.core.brand import BrandColors
 from ui.core.icons import IconUtils
+from ui.i18n import zh
 
 
 class RequestQueueItemCard(QFrame):
@@ -164,11 +165,11 @@ class RequestQueueItemCard(QFrame):
         try:
             time_str = datetime.fromtimestamp(queued_at).strftime("%H:%M:%S")
         except Exception:
-            time_str = "Unknown"
+            time_str = zh("Unknown")
 
         self._pos_label.setText(f"#{position}")
         self._id_label.setText(request_id)
-        self._time_label.setText(f"Added: {time_str}")
+        self._time_label.setText(f"{zh('Added:')} {time_str}")
         self._request_id = request_id
 
         msg_count = int(data.get("message_count") or 0)
@@ -182,25 +183,30 @@ class RequestQueueItemCard(QFrame):
 
         api_key_text = str(api_key_name) if api_key_name else "None"
         if request_type == "text":
-            request_label = "Text Completion"
-            size_line = f"Prompt Length: {prompt_length} chars"
+            request_label = zh("Text Completion")
+            size_line = f"{zh('Prompt Length:')} {prompt_length} 字符"
         else:
-            request_label = "Chat Completion"
-            size_line = f"Messages: {msg_count}"
+            request_label = zh("Chat Completion")
+            size_line = f"{zh('Messages:')} {msg_count}"
 
         slot_line = ""
         if slot_label and slot_label != provider:
-            slot_line = f"\nLane: {slot_label}"
+            slot_line = f"\n{zh('Lane:')} {slot_label}"
 
         self._meta_label.setText(
-            "Provider: {provider}{slot_line}\nType: {request_type}\n{size_line}\nAPI Key: {api_key}\nModel: {model}\nStreaming: {streaming}".format(
-                provider=provider or "Unknown",
+            "{provider_label} {provider}{slot_line}\n{type_label} {request_type}\n{size_line}\n{api_key_label} {api_key}\n{model_label} {model}\n{streaming_label} {streaming}".format(
+                provider_label=zh("Provider:"),
+                provider=provider or zh("Unknown"),
                 slot_line=slot_line,
+                type_label=zh("Type:"),
                 request_type=request_label,
                 size_line=size_line,
-                api_key=api_key_text,
-                model=model or "Unknown",
-                streaming="Yes" if stream else "No",
+                api_key_label=zh("API Key:"),
+                api_key=zh(api_key_text),
+                model_label=zh("Model:"),
+                model=model or zh("Unknown"),
+                streaming_label=zh("Streaming:"),
+                streaming=zh("Yes") if stream else zh("No"),
             )
         )
 
@@ -212,21 +218,21 @@ class RequestQueueItemCard(QFrame):
         if status == "processing":
             action_icon_file = "square.svg"
             action_color = BrandColors.ACCENT
-            action_tooltip = "Abort this active request"
+            action_tooltip = "中止当前活跃请求"
             action_enabled = bool(request_id)
             action_border_color = BrandColors.ACCENT
             action_hover_border_color = BrandColors.CATEGORY_ACTIVE_BORDER
         elif status == "pending":
             action_icon_file = "x.svg"
             action_color = BrandColors.TEXT_SECONDARY
-            action_tooltip = "Cancel this queued request"
+            action_tooltip = "取消这个排队请求"
             action_enabled = bool(request_id)
             action_border_color = BrandColors.INPUT_BORDER
             action_hover_border_color = BrandColors.TEXT_SECONDARY
         else:
             action_icon_file = "x.svg"
             action_color = BrandColors.TEXT_SECONDARY
-            action_tooltip = "This request is already being cancelled"
+            action_tooltip = "这个请求正在取消"
             action_enabled = False
             action_border_color = BrandColors.INPUT_BORDER
             action_hover_border_color = BrandColors.TEXT_SECONDARY
@@ -320,7 +326,7 @@ class RequestQueuePreview(QWidget):
         container_layout.setContentsMargins(0, 0, 0, 0)
         container_layout.setSpacing(0)
 
-        header_label = QLabel("Request Queue")
+        header_label = QLabel(zh("Request Queue"))
         header_label.setStyleSheet(
             f"""
             font-size: {BrandColors.FONT_SIZE_REGULAR};
@@ -388,7 +394,7 @@ class RequestQueuePreview(QWidget):
         empty_layout.setContentsMargins(12, 18, 12, 18)
         empty_layout.addStretch(1)
 
-        empty_label = QLabel("No queued requests")
+        empty_label = QLabel(zh("No queued requests"))
         empty_label.setAlignment(Qt.AlignCenter)
         empty_label.setStyleSheet(
             f"color: {BrandColors.TEXT_SECONDARY}; font-size: {BrandColors.FONT_SIZE_REGULAR};"
@@ -433,7 +439,7 @@ class RequestQueuePreview(QWidget):
         self._stop_button.setCursor(Qt.PointingHandCursor)
         self._stop_button.setFixedSize(32, 32)
         self._stop_button.setIconSize(QSize(16, 16))
-        self._stop_button.setToolTip("Abort all active request(s) and disconnect their clients")
+        self._stop_button.setToolTip("中止所有活跃请求并断开对应客户端")
         self._stop_button.setStyleSheet(
             f"""
             QPushButton {{
@@ -471,7 +477,7 @@ class RequestQueuePreview(QWidget):
         self._trash_button.setCursor(Qt.PointingHandCursor)
         self._trash_button.setFixedSize(32, 32)
         self._trash_button.setIconSize(QSize(16, 16))
-        self._trash_button.setToolTip("Cancel all queued requests that are still waiting")
+        self._trash_button.setToolTip("取消所有仍在等待的排队请求")
         self._trash_button.setStyleSheet(
             f"""
             QPushButton {{
@@ -526,16 +532,16 @@ class RequestQueuePreview(QWidget):
         if stop_button is not None:
             stop_button.setEnabled(processing_count > 0)
             stop_button.setToolTip(
-                "Abort the active request"
+                "中止当前活跃请求"
                 if processing_count == 1
-                else "Abort all active requests"
+                else "中止所有活跃请求"
             )
         if trash_button is not None:
             trash_button.setEnabled(pending_count > 0)
             trash_button.setToolTip(
-                "Cancel the queued request"
+                "取消这个排队请求"
                 if pending_count == 1
-                else "Cancel all queued requests that are still waiting"
+                else "取消所有仍在等待的排队请求"
             )
 
     def set_requests(self, requests: list[dict[str, Any]]) -> None:

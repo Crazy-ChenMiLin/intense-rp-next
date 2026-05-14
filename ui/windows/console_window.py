@@ -24,6 +24,7 @@ from PySide6.QtGui import QTextCharFormat, QColor, QFont, QTextOption, QTextCurs
 
 from ui.core.brand import BrandColors
 from ui.core.icons import IconUtils, IconType
+from ui.i18n import zh
 from utils.logger import Logger
 
 
@@ -68,7 +69,7 @@ class ConsoleWindow(QMainWindow):
     def __init__(self, config_manager=None, parent=None):
         # Pass None as parent to make it a top-level window with its own taskbar icon
         super().__init__(None)
-        self.setWindowTitle("Console")
+        self.setWindowTitle(zh("Console"))
         self.resize(700, 400)
         self.config_manager = config_manager
         self._allow_close = False
@@ -186,7 +187,7 @@ class ConsoleWindow(QMainWindow):
         """
 
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Search console...")
+        self.search_input.setPlaceholderText(zh("Search console..."))
         self.search_input.setFixedWidth(240)
         self.search_input.setStyleSheet(search_input_style)
         search_icon = IconUtils.get_icon(
@@ -262,13 +263,13 @@ class ConsoleWindow(QMainWindow):
         self.search_nav.hide()
         menu_layout.addWidget(self.search_nav, 0)
 
-        clear_btn = QPushButton("Clear")
+        clear_btn = QPushButton(zh("Clear"))
         clear_btn.setCursor(Qt.PointingHandCursor)
         clear_btn.setStyleSheet(button_style)
         clear_btn.clicked.connect(self.clear)
         menu_layout.addWidget(clear_btn)
 
-        dump_btn = QPushButton("Dump")
+        dump_btn = QPushButton(zh("Dump"))
         dump_btn.setCursor(Qt.PointingHandCursor)
         dump_btn.setStyleSheet(button_style)
         dump_btn.clicked.connect(self.dump)
@@ -610,12 +611,12 @@ class ConsoleWindow(QMainWindow):
         """Dump current console contents to a file."""
         text = self.text_area.toPlainText()
         if not text.strip():
-            QMessageBox.information(self, "Console Dump", "Console is empty.")
+            QMessageBox.information(self, "控制台导出", "控制台是空的。")
             return
 
         dump_dir = self._get_dump_directory()
         if not dump_dir:
-            selected_dir = QFileDialog.getExistingDirectory(self, "Select Dump Directory")
+            selected_dir = QFileDialog.getExistingDirectory(self, "选择导出目录")
             if not selected_dir:
                 return
             dump_dir = selected_dir
@@ -636,7 +637,7 @@ class ConsoleWindow(QMainWindow):
             Logger.success(f"Console dumped to: {out_path}")
         except Exception as exc:
             Logger.error(f"Failed to dump console: {exc}")
-            QMessageBox.warning(self, "Console Dump", f"Failed to dump console:\n\n{exc}")
+            QMessageBox.warning(self, "控制台导出", f"导出控制台失败：\n\n{exc}")
 
     def _confirm_clear_enabled(self) -> bool:
         if not self.config_manager:
@@ -823,8 +824,8 @@ class ConsoleWindow(QMainWindow):
         if self._confirm_clear_enabled() and self.text_area.toPlainText().strip():
             reply = QMessageBox.question(
                 self,
-                "Clear Console",
-                "Are you sure you want to clear the console output?",
+                "清空控制台",
+                "确定要清空控制台输出吗？",
                 QMessageBox.Yes | QMessageBox.No,
                 QMessageBox.No,
             )

@@ -106,8 +106,8 @@
     }
 
     elements.modelSwitchCurrentModel.textContent = parallel && provider
-      ? "Current Model: " + provider.name + " - " + (currentModel || "Unknown")
-      : "Current Model: " + (currentModel || "Unknown");
+      ? "当前模型：" + provider.name + " - " + (currentModel || "未知")
+      : "当前模型：" + (currentModel || "未知");
     elements.modelSwitchCurrentModel.classList.remove("hidden");
   }
 
@@ -236,7 +236,7 @@
     }
 
     elements.loadoutSwitchCurrentLoadout.textContent =
-      "Current Loadout: " + (currentLoadout || "Unknown");
+      "当前预设：" + (currentLoadout || "未知");
     elements.loadoutSwitchCurrentLoadout.classList.remove("hidden");
   }
 
@@ -336,7 +336,7 @@
         : '<span class="loadout-option__check" aria-hidden="true"></span>';
       const meta = selected
         ? '<span class="loadout-option__meta">' +
-          remote.escapeHtml(optionName === currentName ? "Current" : "Selected") +
+          remote.escapeHtml(optionName === currentName ? "当前" : "已选择") +
           "</span>"
         : "";
 
@@ -392,7 +392,7 @@
           : '<span class="model-option__check" aria-hidden="true"></span>';
         const meta = selected
           ? '<span class="model-option__meta">' +
-            remote.escapeHtml(optionName === currentName ? "Current" : "Selected") +
+            remote.escapeHtml(optionName === currentName ? "当前" : "已选择") +
             "</span>"
           : "";
         button.innerHTML =
@@ -458,7 +458,7 @@
 
     const originalHtml = button.innerHTML;
     setModelSwitchBusyState(true);
-    button.innerHTML = '<span class="web-button__label">Loading...</span>';
+    button.innerHTML = '<span class="web-button__label">加载中...</span>';
 
     const ok = await remote.api.triggerAction(
       "switch-model",

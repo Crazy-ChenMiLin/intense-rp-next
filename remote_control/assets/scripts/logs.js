@@ -75,20 +75,20 @@
     if (elements.consoleOutput) {
       elements.consoleOutput.innerHTML = "";
     }
-    setConsolePlaceholder(placeholderText || "Loading logs");
+    setConsolePlaceholder(placeholderText || "正在加载日志");
   }
 
   function setLogsConnected(connected, message) {
     state.logConnected = Boolean(connected);
     if (state.logConnected) {
-      elements.logsFooterButton.innerHTML = '<span class="web-button__label">Back</span>';
+      elements.logsFooterButton.innerHTML = '<span class="web-button__label">返回</span>';
       remote.setStatus(elements.logsStatus, "", false);
     } else {
       elements.logsFooterButton.innerHTML =
         '<span class="web-button__icon" aria-hidden="true"><img src="' +
         remote.escapeHtml(icons.chevron_right) +
-        '" alt=""></span><span class="web-button__label">Reconnect</span>';
-      remote.setStatus(elements.logsStatus, message || "Connection to logs was lost.", true);
+        '" alt=""></span><span class="web-button__label">重新连接</span>';
+      remote.setStatus(elements.logsStatus, message || "日志连接已断开。", true);
     }
   }
 
@@ -112,7 +112,7 @@
     const latestId = Number(response && response.latest_id);
     if (Number.isFinite(latestId) && latestId < state.logLastId) {
       state.logLastId = 0;
-      resetConsoleOutput("Loading logs");
+      resetConsoleOutput("正在加载日志");
     }
 
     entries.forEach((entry) => {
@@ -128,7 +128,7 @@
   async function start() {
     stop();
     setLogsConnected(true, "");
-    setConsolePlaceholder("Loading logs");
+    setConsolePlaceholder("正在加载日志");
 
     const controller = new AbortController();
     state.logController = controller;
@@ -139,7 +139,7 @@
         return;
       }
 
-      setConsolePlaceholder("Connected. Waiting for logs...");
+      setConsolePlaceholder("已连接，等待日志...");
       const streamUrl = remote.apiUrl(
         "/api/logs/stream?after=" + encodeURIComponent(String(state.logLastId || 0))
       );
@@ -151,7 +151,7 @@
       });
 
       if (!response.ok || !response.body) {
-        throw new Error("Unable to connect to the logs stream.");
+        throw new Error("无法连接到日志流。");
       }
 
       const reader = response.body.getReader();
@@ -184,7 +184,7 @@
           });
           if (eventName === "connected") {
             setLogsConnected(true, "");
-            setConsolePlaceholder("Connected. Waiting for logs...");
+            setConsolePlaceholder("已连接，等待日志...");
             return;
           }
           if (eventName !== "log" || !dataText) {
@@ -204,7 +204,7 @@
       }
       setLogsConnected(
         false,
-        error && error.message ? error.message : "Connection to logs was lost."
+        error && error.message ? error.message : "日志连接已断开。"
       );
     } finally {
       if (state.logController === controller) {

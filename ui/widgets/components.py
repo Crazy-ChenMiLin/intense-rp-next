@@ -7,6 +7,7 @@ from PySide6.QtGui import QPainter, QColor, QBrush, QPen, QIcon, QTextCursor
 from ui.core.brand import BrandColors
 from ui.core.animation_settings import animations_disabled
 from ui.core.icons import IconUtils, IconType
+from ui.i18n import zh
 from ui.widgets.tooltip_text import render_tooltip_text
 
 
@@ -26,8 +27,8 @@ class DocsHelpButton(QToolButton):
         self.setCursor(Qt.PointingHandCursor)
         self.setFocusPolicy(Qt.StrongFocus)
         self.setAutoRaise(True)
-        self.setToolTip("Open docs for this setting (F1)")
-        self.setAccessibleName("Open docs for this setting")
+        self.setToolTip("打开此设置的文档（F1）")
+        self.setAccessibleName("打开此设置的文档")
         self.setFixedSize(16, 16)
         self.setIconSize(QSize(12, 12))
         self.setStyleSheet(
@@ -682,7 +683,7 @@ class DirectoryEntry(QWidget):
 
     def __init__(self, parent=None, button_text: str = "Browse", dialog_title: str = "Select Directory") -> None:
         super().__init__(parent)
-        self._dialog_title = dialog_title
+        self._dialog_title = zh(dialog_title)
         self._error_state = False
 
         self.setStyleSheet("background-color: transparent;")
@@ -694,7 +695,7 @@ class DirectoryEntry(QWidget):
         self.line_edit = StyledLineEdit()
         self.line_edit.textChanged.connect(self.textChanged.emit)
 
-        self.browse_button = QPushButton(button_text)
+        self.browse_button = QPushButton(zh(button_text))
         self.browse_button.setCursor(Qt.PointingHandCursor)
         self.browse_button.setFixedWidth(92)
         self._update_button_style()
@@ -887,8 +888,8 @@ class InputPairsWidget(QWidget):
     ):
         super().__init__(parent)
         self._rows: list[InputPairRow] = []
-        self._left_placeholder = left_placeholder
-        self._right_placeholder = right_placeholder
+        self._left_placeholder = zh(left_placeholder)
+        self._right_placeholder = zh(right_placeholder)
         self._alternative_buttons: list[QPushButton] = []
 
         layout = QVBoxLayout(self)
@@ -904,7 +905,7 @@ class InputPairsWidget(QWidget):
         actions_row.setContentsMargins(0, 0, 0, 0)
         actions_row.setSpacing(8)
 
-        self.add_button = StyledButton("Create New")
+        self.add_button = StyledButton("新增")
         IconUtils.apply_icon(
             self.add_button,
             IconType.PLUS,
@@ -1069,7 +1070,7 @@ class InputListWidget(QWidget):
     def __init__(self, parent=None, placeholder: str = ""):
         super().__init__(parent)
         self._rows: list[InputListRow] = []
-        self._placeholder = placeholder
+        self._placeholder = zh(placeholder)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -1084,7 +1085,7 @@ class InputListWidget(QWidget):
         actions_row.setContentsMargins(0, 0, 0, 0)
         actions_row.setSpacing(8)
 
-        self.add_button = StyledButton("Create New")
+        self.add_button = StyledButton("新增")
         IconUtils.apply_icon(
             self.add_button,
             IconType.PLUS,

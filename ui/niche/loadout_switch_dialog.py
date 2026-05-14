@@ -10,6 +10,7 @@ from config.loadouts import LoadoutDefinition
 from drivers.providers import DriverProvider
 from ui.core.brand import BrandColors
 from ui.core.icons import IconType, IconUtils
+from ui.i18n import zh
 from ui.niche.hotswap_dialog import PROVIDER_ICON_MAP
 from ui.widgets.components import HintCard, StyledComboBox
 from ui.widgets.smooth_scroll_area import SmoothScrollArea
@@ -194,7 +195,7 @@ class LoadoutSwitchDialog(QDialog):
         self._desc_label: QLabel | None = None
         self._list_layout: QVBoxLayout | None = None
 
-        self.setWindowTitle("Switch Loadout")
+        self.setWindowTitle(zh("Switch Loadout"))
         self.setModal(True)
         self.setFocusPolicy(Qt.StrongFocus)
         self.setFixedWidth(460 if self._deferred_apply else 420)
@@ -219,7 +220,7 @@ class LoadoutSwitchDialog(QDialog):
         layout.setContentsMargins(22, 22, 22, 18)
         layout.setSpacing(12)
 
-        title = QLabel("Switch Loadout")
+        title = QLabel(zh("Switch Loadout"))
         title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet(
             f"""
@@ -288,7 +289,7 @@ class LoadoutSwitchDialog(QDialog):
             layout.addWidget(self._build_confirm_buttons())
         else:
             cancel = self._build_footer_button(
-                "Cancel",
+                zh("Cancel"),
                 IconType.CANCEL,
                 BrandColors.SIDEBAR_BG,
                 BrandColors.ITEM_HOVER,
@@ -374,7 +375,7 @@ class LoadoutSwitchDialog(QDialog):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
 
-        label = QLabel("Provider")
+        label = QLabel(zh("Provider"))
         label.setStyleSheet(
             f"""
             color: {BrandColors.TEXT_SECONDARY};
@@ -419,7 +420,7 @@ class LoadoutSwitchDialog(QDialog):
         layout.setSpacing(10)
 
         cancel = self._build_footer_button(
-            "Cancel",
+            zh("Cancel"),
             IconType.CANCEL,
             BrandColors.SIDEBAR_BG,
             BrandColors.ITEM_HOVER,
@@ -428,7 +429,7 @@ class LoadoutSwitchDialog(QDialog):
         layout.addWidget(cancel, 1)
 
         confirm = self._build_footer_button(
-            "Confirm",
+            zh("Confirm"),
             IconType.CONFIRM,
             BrandColors.ACCENT,
             "#4a80e0",
@@ -471,12 +472,12 @@ class LoadoutSwitchDialog(QDialog):
             return
 
         if self._deferred_apply:
-            self._desc_label.setText(f"Showing loadouts for <b>{self._provider_display_name()}</b>.")
+            self._desc_label.setText(f"正在显示 <b>{self._provider_display_name()}</b> 的预设。")
             return
 
         self._desc_label.setText(
-            f"Showing loadouts for <b>{self._provider_display_name()}</b>. "
-            "Pick the one you want to use next:"
+            f"正在显示 <b>{self._provider_display_name()}</b> 的预设。"
+            "请选择下次要使用的预设："
         )
 
     def _clear_initial_focus(self) -> None:
@@ -504,8 +505,8 @@ class LoadoutSwitchDialog(QDialog):
         else:
             self._list_layout.addWidget(
                 HintCard(
-                    "No loadouts found",
-                    f"No valid loadouts are available for {self._provider_display_name()}.",
+                    zh("No loadouts found"),
+                    f"{self._provider_display_name()} 没有可用的有效预设。",
                     variant="warn",
                 )
             )
@@ -521,11 +522,11 @@ class LoadoutSwitchDialog(QDialog):
         original_name = self._current_names_by_provider.get(loadout.provider)
         is_current = loadout.name == selected_name
         if is_current and loadout.name == original_name:
-            subtitle = "Currently active"
+            subtitle = zh("Currently active")
         elif is_current:
-            subtitle = "Selected"
+            subtitle = zh("Selected")
         else:
-            subtitle = "Click to select" if self._deferred_apply else "Click to switch on the next restart"
+            subtitle = zh("Click to select") if self._deferred_apply else zh("Click to switch on the next restart")
 
         button = _LoadoutOptionCard(
             provider_name=self._provider_name,

@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QDialog, QFrame, QLabel, QPushButton, QVBoxLayout
 from drivers.descriptors import PROVIDER_DESCRIPTORS
 from ui.core.brand import BrandColors
 from ui.core.icons import IconType, IconUtils
+from ui.i18n import zh
 
 
 PROVIDER_ICON_MAP: dict[str, str] = {
@@ -28,7 +29,7 @@ class HotswapDialog(QDialog):
         super().__init__(parent)
         self._selected: Optional[str] = None
 
-        self.setWindowTitle("Hotswap Provider")
+        self.setWindowTitle(zh("Hotswap Provider"))
         self.setModal(True)
         self.setFixedWidth(340)
 
@@ -51,7 +52,7 @@ class HotswapDialog(QDialog):
         layout.setContentsMargins(22, 22, 22, 18)
         layout.setSpacing(12)
 
-        title = QLabel("Switch Provider")
+        title = QLabel(zh("Switch Provider"))
         title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet(
             f"""
@@ -63,7 +64,7 @@ class HotswapDialog(QDialog):
         )
         layout.addWidget(title)
 
-        desc = QLabel(f"Currently using <b>{current_provider}</b>. Pick a provider to switch to:")
+        desc = QLabel(f"当前正在使用 <b>{current_provider}</b>。请选择要切换到的提供商：")
         desc.setWordWrap(True)
         desc.setAlignment(Qt.AlignCenter)
         desc.setTextFormat(Qt.RichText)
@@ -113,7 +114,7 @@ class HotswapDialog(QDialog):
             layout.addWidget(btn)
 
         # Cancel button
-        cancel = QPushButton("Cancel")
+        cancel = QPushButton(zh("Cancel"))
         cancel.setCursor(Qt.PointingHandCursor)
         cancel.setStyleSheet(
             f"""
