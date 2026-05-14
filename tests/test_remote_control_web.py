@@ -3,7 +3,7 @@ import tempfile
 import unittest
 
 import httpx
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 from remote_control.web import RemoteControlActions, RemoteControlWeb
 from utils.logger import Logger
@@ -62,6 +62,18 @@ class ActionRecorder:
         )
 
 
+def _ip_whitelist(allowed_hosts):
+    allowed = set(allowed_hosts)
+
+    def enforce(raw_request):
+        client = getattr(raw_request, "client", None)
+        client_host = str(getattr(client, "host", "") or "").strip()
+        if client_host not in allowed:
+            raise HTTPException(status_code=403, detail="Client IP not allowed")
+
+    return enforce
+
+
 class RemoteControlWebLoginTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self._stdout_enabled = Logger._stdout_enabled
@@ -79,19 +91,26 @@ class RemoteControlWebLoginTests(unittest.IsolatedAsyncioTestCase):
         self.tmp.cleanup()
         Logger.set_stdout_enabled(self._stdout_enabled)
 
-    async def _make_client(self, *, password="secret", state=None):
+    async def _make_client(
+        self,
+        *,
+        password="secret",
+        state=None,
+        client_host="203.0.113.10",
+        enforce_ip_whitelist=None,
+    ):
         app = FastAPI()
         config = DummyConfig(self.tmp.name, password=password)
         self.actions = ActionRecorder(state)
         self.web = RemoteControlWeb(
             config,
-            enforce_ip_whitelist=lambda _request: None,
+            enforce_ip_whitelist=enforce_ip_whitelist or (lambda _request: None),
             actions=self.actions.as_actions(),
         )
         self.web.register_routes(app)
         transport = httpx.ASGITransport(
             app=app,
-            client=("203.0.113.10", 12345),
+            client=(client_host, 12345),
         )
         self.client = httpx.AsyncClient(
             transport=transport,
@@ -159,6 +178,43 @@ class RemoteControlWebLoginTests(unittest.IsolatedAsyncioTestCase):
             )
             self.assertEqual(response.status_code, 200)
             self.assertFalse(response.json()["needs_auth"])
+
+    async def test_ip_whitelist_blocks_login_before_password_auth(self):
+        client = await self._make_client(
+            enforce_ip_whitelist=_ip_whitelist({"198.51.100.10"}),
+        )
+
+        response = await client.post(
+            "/remote/api/login",
+            json={"password": "secret"},
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["detail"], "Client IP not allowed")
+
+    async def test_ip_whitelist_blocks_authenticated_routes_before_token_auth(self):
+        client = await self._make_client(
+            enforce_ip_whitelist=_ip_whitelist({"198.51.100.10"}),
+        )
+
+        response = await client.get("/remote/api/state")
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["detail"], "Client IP not allowed")
+
+    async def test_ip_whitelist_allows_remote_login_from_allowed_host(self):
+        client = await self._make_client(
+            client_host="198.51.100.10",
+            enforce_ip_whitelist=_ip_whitelist({"198.51.100.10"}),
+        )
+
+        response = await client.post(
+            "/remote/api/login",
+            json={"password": "secret"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["token"])
 
     async def test_session_requires_remote_token(self):
         client = await self._make_client()
