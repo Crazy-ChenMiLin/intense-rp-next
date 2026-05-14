@@ -8,7 +8,7 @@ from collections import deque
 from dataclasses import dataclass
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import List, Optional, Dict, Any, Callable, Literal, Union
 
 from drivers.base_driver import BaseDriver
@@ -188,10 +188,37 @@ def _build_api_cors_headers(raw_request: Request, *, preflight: bool = False) ->
     )
     return headers
 
+def _normalize_message_content(content: Any) -> str:
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for item in content:
+            if isinstance(item, str):
+                parts.append(item)
+                continue
+            if not isinstance(item, dict):
+                continue
+            item_type = str(item.get("type") or "").strip().lower()
+            if item_type in {"text", "input_text"}:
+                text = item.get("text")
+                if isinstance(text, str):
+                    parts.append(text)
+        return "\n".join(part for part in parts if part)
+    return str(content)
+
+
 class Message(BaseModel):
     role: str
     content: str
     name: Optional[str] = None
+
+    @field_validator("content", mode="before")
+    @classmethod
+    def normalize_content(cls, value: Any) -> str:
+        return _normalize_message_content(value)
 
 class ChatCompletionRequest(BaseModel):
     messages: List[Message]
@@ -1221,7 +1248,7 @@ class API:
                 name = str(p[0])
                 key_val = str(p[1])
 
-            if key_val and token == key_val:
+            if key_val and secrets.compare_digest(token, key_val):
                 matched_name = name or "Unnamed"
                 break
 
@@ -1371,7 +1398,11 @@ class API:
                 usage: dict | None = None
                 
                 while True:
-                    chunk_str = await response_queue.get()
+                    chunk_str = await self._get_non_streaming_chunk(
+                        response_queue,
+                        abort_event,
+                        raw_request,
+                    )
                     if chunk_str is None:
                         break
 
@@ -1511,7 +1542,11 @@ class API:
             usage: dict | None = None
 
             while True:
-                chunk_str = await response_queue.get()
+                chunk_str = await self._get_non_streaming_chunk(
+                    response_queue,
+                    abort_event,
+                    raw_request,
+                )
                 if chunk_str is None:
                     break
 
@@ -1618,6 +1653,27 @@ class API:
             self._notify_queue_state_changed()
             asyncio.create_task(self._remove_queued_request_by_abort_event(abort_event))
             self._request_abort_for_abort_event(abort_event)
+
+    async def _get_non_streaming_chunk(
+        self,
+        response_queue: asyncio.Queue,
+        abort_event: asyncio.Event,
+        raw_request: Request,
+    ):
+        while True:
+            if await raw_request.is_disconnected():
+                Logger.warning("Client disconnected from non-streaming request, aborting...")
+                abort_event.set()
+                self._notify_queue_state_changed()
+                removed = await self._remove_queued_request_by_abort_event(abort_event)
+                if not removed:
+                    self._request_abort_for_abort_event(abort_event)
+                return None
+
+            try:
+                return await asyncio.wait_for(response_queue.get(), timeout=0.5)
+            except asyncio.TimeoutError:
+                continue
 
     def start_worker(self):
         self.worker_tasks = {

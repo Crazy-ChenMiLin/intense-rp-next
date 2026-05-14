@@ -5,26 +5,19 @@ from typing import Optional
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtWidgets import QDialog, QFrame, QLabel, QPushButton, QVBoxLayout
 
+from drivers.descriptors import PROVIDER_DESCRIPTORS
 from ui.core.brand import BrandColors
 from ui.core.icons import IconType, IconUtils
 
 
 PROVIDER_ICON_MAP: dict[str, str] = {
-    "DeepSeek": "providers/deepseek.svg",
-    "GLM Chat": "providers/zai.svg",
-    "Moonshot": "providers/moonshot.svg",
-    "QwenLM": "providers/qwen.svg",
-    "Perplexity": "providers/perplexity.svg",
-    "Google AI Studio": "providers/aistudio.svg",
+    descriptor.provider.value: descriptor.icon_path
+    for descriptor in PROVIDER_DESCRIPTORS.values()
 }
 
 ALL_PROVIDERS: list[str] = [
-    "DeepSeek",
-    "GLM Chat",
-    "Moonshot",
-    "QwenLM",
-    "Perplexity",
-    "Google AI Studio",
+    descriptor.provider.value
+    for descriptor in PROVIDER_DESCRIPTORS.values()
 ]
 
 

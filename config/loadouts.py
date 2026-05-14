@@ -9,6 +9,7 @@ from typing import Any, Iterable
 from config.location import get_local_anchor_dir
 from config.migrator import migrate_glm_model_value
 from config.schema import SCHEMA, SettingField, SettingType
+from drivers.descriptors import get_provider_behavior_category
 from drivers.providers import DriverProvider, provider_options
 from utils.ip_utils import normalize_ip_list
 
@@ -20,16 +21,6 @@ LOADOUTS_LEGACY_MIGRATION_FLAG = "loadouts.legacy_json_migrated"
 
 LOADOUT_META_KEY = "Meta"
 LOADOUT_META_COMMENT_KEY = "_Comment"
-
-LOADOUT_BEHAVIOR_CATEGORY_BY_PROVIDER: dict[DriverProvider, str] = {
-    DriverProvider.DEEPSEEK: "deepseek_behavior",
-    DriverProvider.GLM_CHAT: "glm_behavior",
-    DriverProvider.MOONSHOT: "moonshot_behavior",
-    DriverProvider.QWEN_LM: "qwen_behavior",
-    DriverProvider.PERPLEXITY: "perplexity_behavior",
-    DriverProvider.AI_STUDIO: "aistudio_behavior",
-}
-
 
 @dataclass(frozen=True)
 class LoadoutDefinition:
@@ -78,7 +69,7 @@ def _get_category_fields(category_key: str) -> dict[str, SettingField]:
 
 
 def get_behavior_category_for_provider(provider: DriverProvider) -> str | None:
-    return LOADOUT_BEHAVIOR_CATEGORY_BY_PROVIDER.get(provider)
+    return get_provider_behavior_category(provider)
 
 
 def get_loadout_field_defs(provider: DriverProvider) -> dict[str, SettingField]:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import secrets
+import time
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
@@ -13,6 +14,7 @@ from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from pydantic import BaseModel
 
+from drivers.descriptors import PROVIDER_DESCRIPTORS
 from drivers.providers import DriverProvider, provider_options
 from utils.logger import LogLevel, Logger
 from utils.resource_path import resolve_resource_path
@@ -21,12 +23,8 @@ from .sessions import REMOTE_SESSION_TTL_SECONDS, RemoteControlSessionStore
 
 
 PROVIDER_ICON_MAP: dict[str, str] = {
-    DriverProvider.DEEPSEEK.value: "providers/deepseek.svg",
-    DriverProvider.GLM_CHAT.value: "providers/zai.svg",
-    DriverProvider.MOONSHOT.value: "providers/moonshot.svg",
-    DriverProvider.QWEN_LM.value: "providers/qwen.svg",
-    DriverProvider.PERPLEXITY.value: "providers/perplexity.svg",
-    DriverProvider.AI_STUDIO.value: "providers/aistudio.svg",
+    descriptor.provider.value: descriptor.icon_path
+    for descriptor in PROVIDER_DESCRIPTORS.values()
 }
 
 
@@ -76,6 +74,9 @@ class RemoteActionRequest(BaseModel):
 class RemoteControlWeb:
     BASE_PATH = "/remote"
     LOG_BACKLOG_LIMIT = 300
+    LOGIN_FAILURE_LIMIT = 5
+    LOGIN_FAILURE_WINDOW_SECONDS = 10 * 60
+    LOGIN_LOCKOUT_SECONDS = 60
 
     def __init__(
         self,
@@ -89,6 +90,7 @@ class RemoteControlWeb:
         self._actions = actions
         self._loop = asyncio.get_running_loop()
         self._session_store = RemoteControlSessionStore(self.config_manager.config_dir)
+        self._login_attempts_by_client: dict[str, dict[str, float | int]] = {}
         self._next_log_id = 0
         self._log_history: deque[dict[str, Any]] = deque(maxlen=self.LOG_BACKLOG_LIMIT)
         for level, message in Logger.recent_messages(self.LOG_BACKLOG_LIMIT):
@@ -243,9 +245,12 @@ class RemoteControlWeb:
 
             current_password = self._get_password()
             provided_password = str(payload.password or "")
+            self._enforce_login_rate_limit(raw_request)
             if not secrets.compare_digest(current_password, provided_password):
+                self._record_failed_login(raw_request)
                 raise HTTPException(status_code=401, detail="Invalid password")
 
+            self._clear_login_failures(raw_request)
             session = self._session_store.issue_session(current_password)
             return self._build_session_response(session)
 
@@ -608,6 +613,62 @@ class RemoteControlWeb:
         if not self.is_enabled():
             raise HTTPException(status_code=404, detail="Remote Control is disabled")
         self._enforce_ip_whitelist(raw_request)
+
+    @staticmethod
+    def _get_client_host(raw_request: Request) -> str:
+        client = getattr(raw_request, "client", None)
+        return str(getattr(client, "host", "") or "").strip() or "unknown"
+
+    def _get_login_attempt_record(
+        self,
+        client_host: str,
+        *,
+        now: float,
+    ) -> dict[str, float | int]:
+        record = self._login_attempts_by_client.get(client_host)
+        if not record:
+            return {"count": 0, "window_started_at": now, "locked_until": 0.0}
+
+        window_started_at = float(record.get("window_started_at") or now)
+        if now - window_started_at > self.LOGIN_FAILURE_WINDOW_SECONDS:
+            return {"count": 0, "window_started_at": now, "locked_until": 0.0}
+
+        return record
+
+    def _enforce_login_rate_limit(self, raw_request: Request) -> None:
+        client_host = self._get_client_host(raw_request)
+        now = time.monotonic()
+        record = self._get_login_attempt_record(client_host, now=now)
+        locked_until = float(record.get("locked_until") or 0.0)
+        if locked_until <= now:
+            return
+
+        retry_after = max(1, int(locked_until - now))
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many failed login attempts. Try again in {retry_after} seconds.",
+            headers={"Retry-After": str(retry_after)},
+        )
+
+    def _record_failed_login(self, raw_request: Request) -> None:
+        client_host = self._get_client_host(raw_request)
+        now = time.monotonic()
+        record = self._get_login_attempt_record(client_host, now=now)
+        failure_count = int(record.get("count") or 0) + 1
+        record["count"] = failure_count
+        record["window_started_at"] = float(record.get("window_started_at") or now)
+
+        if failure_count >= self.LOGIN_FAILURE_LIMIT:
+            record["locked_until"] = now + self.LOGIN_LOCKOUT_SECONDS
+            Logger.warning(
+                f"RemoteControl: temporarily locked login attempts from {client_host} "
+                "after repeated failures."
+            )
+
+        self._login_attempts_by_client[client_host] = record
+
+    def _clear_login_failures(self, raw_request: Request) -> None:
+        self._login_attempts_by_client.pop(self._get_client_host(raw_request), None)
 
     def _authenticate_remote_request(self, raw_request: Request) -> dict[str, Any] | None:
         self._ensure_route_available(raw_request)
